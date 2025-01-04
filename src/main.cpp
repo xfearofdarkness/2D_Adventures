@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cmath>
+
 #include "raylib.h"
 #include "Player.h"
 #include "Enemy.h"
@@ -26,14 +28,17 @@ int main() {
         player.update(player, deltaTime);
         enemy.moveTowardPlayer({ player.x, player.y }, deltaTime);
 
-        camera.target = { player.x + 16.0f, player.y + 16.0f };
-        camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+        camera.target = { roundf(player.x + 16.0f), roundf(player.y + 16.0f) };
+        camera.offset = { roundf(GetScreenWidth() / 2.0f), roundf(GetScreenHeight() / 2.0f) };
         camera.rotation = 0.0f;
         camera.zoom = 1.0f;
 
         // Check collision
         bool isColliding = checkCollision(player.getBoundingBox(), enemy.getBoundingBox());
 
+        if (isColliding) {
+            //TODO: implememt blocking movement
+        }
         // Draw everything
         BeginDrawing();
         BeginMode2D(camera);
