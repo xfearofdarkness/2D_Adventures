@@ -29,7 +29,7 @@ int main() {
         enemy.moveTowardPlayer({ player.x, player.y }, deltaTime);
 
         camera.target = { roundf(player.x + 16.0f), roundf(player.y + 16.0f) };
-        camera.offset = { roundf(GetScreenWidth() / 2.0f), roundf(GetScreenHeight() / 2.0f) };
+        camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
         camera.rotation = 0.0f;
         camera.zoom = 1.0f;
 
@@ -37,14 +37,14 @@ int main() {
         bool isColliding = checkCollision(player.getBoundingBox(), enemy.getBoundingBox());
 
         if (isColliding) {
-            //TODO: implememt blocking movement
+            //TODO: implement blocking movement
         }
-        // Draw everything
+
         BeginDrawing();
         BeginMode2D(camera);
         ClearBackground(BLACK);
 
-        // Draw tile grid
+
         for (int y = -32 * 10; y < 32 * 20; y += 32) {
             for (int x = -32 * 10; x < 32 * 20; x += 32) {
                 DrawTexturePro(text, { 0, 0, 32, 32 }, { (float)x, (float)y, 32, 32 }, { 0, 0 }, 0, WHITE);
@@ -55,7 +55,7 @@ int main() {
         DrawTexturePro(
             text,
             { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
-            { player.x, player.y, 32, 32 },
+            { roundf(player.x), roundf(player.y), 32, 32 },
             { 0, 0 },
             0,
             WHITE
@@ -70,16 +70,12 @@ int main() {
             0,
             RED
         );
-
         EndMode2D();
-
         // Draw UI
         if (isColliding) {
             DrawText("Collision Detected!", 20, 80, 20, RED);
         }
-
         EndDrawing();
     }
-
     CloseWindow();
 }
