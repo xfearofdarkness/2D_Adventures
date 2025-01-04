@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "Player.h"
 #include "Enemy.h"
+#include "icons.h"
 
 bool checkCollision(const Rectangle& rect1, const Rectangle& rect2) {
     return CheckCollisionRecs(rect1, rect2);
@@ -12,7 +13,8 @@ bool checkCollision(const Rectangle& rect1, const Rectangle& rect2) {
 int main() {
     SetConfigFlags(FLAG_VSYNC_HINT);
     InitWindow(640, 480, "2D Adventures Alpha");
-    Texture2D text = LoadTexture("../res/icons.png");
+    Image img = LoadImageFromMemory(".png", icon_png, icon_png_len);
+    Texture2D text = LoadTextureFromImage(img);
     SetTextureFilter(text, TEXTURE_FILTER_POINT);
     SetTargetFPS(60);
 
