@@ -79,5 +79,7 @@ int main() {
         }
         EndDrawing();
     }
+    UnloadTexture(text);
+    UnloadImage(img);
     CloseWindow();
 }

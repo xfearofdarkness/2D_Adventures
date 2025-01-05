@@ -13,10 +13,10 @@ except IOError as e:
     sys.exit(1)
 try:
     with open(output_file, "w") as f:
-        f.write("unsigned char icon_png[] = {\n")
+        f.write("inline unsigned char icon_png[] = {\n")
         f.write(", ".join(f"0x{byte:02x}" for byte in data))
         f.write("\n};\n")
-        f.write(f"unsigned int icon_png_len = {len(data)};\n")
+        f.write(f"inline unsigned int icon_png_len = {len(data)};\n")
 except IOError as e:
     print(f"Error writing output file: {e}", file=sys.stderr)
     sys.exit(1)

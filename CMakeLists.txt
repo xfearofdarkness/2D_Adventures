@@ -53,7 +53,7 @@ add_executable(${PROJECT_NAME}
 )
 
 # Ensure the headers are generated before building the executable
-
+add_custom_target(GenerateHeaders DEPENDS ${CMAKE_SOURCE_DIR}/icons.h)
 
 # Link with raylib
 target_link_libraries(${PROJECT_NAME} raylib)
