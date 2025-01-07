@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cmath>
-
 #include "raylib.h"
 #include "Player.h"
 #include "Enemy.h"
@@ -46,10 +45,10 @@ int main() {
         BeginMode2D(camera);
         ClearBackground(BLACK);
 
-
+        
         for (int y = -32 * 10; y < 32 * 20; y += 32) {
             for (int x = -32 * 10; x < 32 * 20; x += 32) {
-                DrawTexturePro(text, { 0, 0, 32, 32 }, { (float)x, (float)y, 32, 32 }, { 0, 0 }, 0, WHITE);
+                DrawTexturePro(text, { 3 * 32, 0, 32, 32 }, { (float)x, (float)y, 32, 32 }, { 0, 0 }, 0, WHITE);
             }
         }
 

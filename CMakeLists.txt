@@ -50,6 +50,7 @@ add_executable(${PROJECT_NAME}
         src/Player.h
         src/Enemy.cpp
         src/Enemy.h
+        src/Assert.h
 )
 
 # Ensure the headers are generated before building the executable

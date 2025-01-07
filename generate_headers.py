@@ -13,6 +13,7 @@ except IOError as e:
     sys.exit(1)
 try:
     with open(output_file, "w") as f:
+        f.write("#pragma once\n")
         f.write("inline unsigned char icon_png[] = {\n")
         f.write(", ".join(f"0x{byte:02x}" for byte in data))
         f.write("\n};\n")
@@ -20,3 +21,4 @@ try:
 except IOError as e:
     print(f"Error writing output file: {e}", file=sys.stderr)
     sys.exit(1)
+print("Converting to header was successful")
