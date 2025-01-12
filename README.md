@@ -9,8 +9,7 @@ Install CMake and Ninja with your package manager
 Clone the git repository
 >git clone https://github.com/xfearofdarkness/2D_Adventures.git  
 
-Install [raylib](https://www.raylib.com/) (optional) and **[its dependencies](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux) (required)**  
-Install python3  
+Install [raylib](https://www.raylib.com/) (optional) and **[its dependencies](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux) (required)**   
 
 run 
 > ./build_ninja_linux.sh  

@@ -6,8 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Use C++20 standard
 set(CMAKE_CXX_STANDARD 20)
-set(INPUT_FILE_PATH ${CMAKE_SOURCE_DIR}/res/icons.png)
-set(OUTPUT_FILE_PATH ${CMAKE_SOURCE_DIR}/src/icons.h)
+
 # Dependencies
 set(RAYLIB_VERSION 5.5)
 find_package(raylib ${RAYLIB_VERSION} QUIET) # Find raylib (quietly)
@@ -26,23 +25,7 @@ if (NOT raylib_FOUND) # If raylib is not found, fetch and build it
     endif()
 endif()
 
-# Embed PNG file into a header
-find_package(Python3 REQUIRED)
 
-# Run the Python script as part of the build configuration
-execute_process(
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/generate_headers.py
-        ${INPUT_FILE_PATH} ${OUTPUT_FILE_PATH}
-        RESULT_VARIABLE result
-        OUTPUT_VARIABLE output
-        ERROR_VARIABLE error
-)
-
-if(result)
-    message(FATAL_ERROR "Python script failed with error: ${error}")
-else()
-    message(STATUS "Python script output: ${output}")
-endif()
 # Add your executable
 add_executable(${PROJECT_NAME}
         src/main.cpp
@@ -51,10 +34,9 @@ add_executable(${PROJECT_NAME}
         src/Enemy.cpp
         src/Enemy.h
         src/Assert.h
+        src/Level.cpp
+        src/Level.h
 )
-
-# Ensure the headers are generated before building the executable
-add_custom_target(GenerateHeaders DEPENDS ${CMAKE_SOURCE_DIR}/icons.h)
 
 # Link with raylib
 target_link_libraries(${PROJECT_NAME} raylib)

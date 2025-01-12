@@ -1,9 +1,11 @@
 #include <iostream>
 #include <cmath>
+#include <map>
+
 #include "raylib.h"
 #include "Player.h"
 #include "Enemy.h"
-#include "icons.h"
+#include "Level.h"
 
 bool checkCollision(const Rectangle& rect1, const Rectangle& rect2) {
     return CheckCollisionRecs(rect1, rect2);
@@ -12,11 +14,15 @@ bool checkCollision(const Rectangle& rect1, const Rectangle& rect2) {
 int main() {
     SetConfigFlags(FLAG_VSYNC_HINT);
     InitWindow(640, 480, "2D Adventures Alpha");
-    Image img = LoadImageFromMemory(".png", icon_png, icon_png_len);
-    Texture2D text = LoadTextureFromImage(img);
+    Texture2D text = LoadTexture("../res/icons.png");
+    if (text.id == 0) {
+        std::cout << "Failed to load texture" << std::endl;
+        return 1;
+    }
     SetTextureFilter(text, TEXTURE_FILTER_POINT);
     SetTargetFPS(60);
-
+    Level level;
+    std::vector<std::vector<int>> tileMap = level.GetTileMap();
     Player player = { 320, 240 };
     Enemy enemy = { 400, 300 };
 
@@ -45,10 +51,30 @@ int main() {
         BeginMode2D(camera);
         ClearBackground(BLACK);
 
-        
-        for (int y = -32 * 10; y < 32 * 20; y += 32) {
-            for (int x = -32 * 10; x < 32 * 20; x += 32) {
-                DrawTexturePro(text, { 3 * 32, 0, 32, 32 }, { (float)x, (float)y, 32, 32 }, { 0, 0 }, 0, WHITE);
+        int mapWidth = 32, mapHeight = 32;
+        int tileSize = level.tile_size();
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                int tileType = tileMap[y][x];
+                Vector2 pos = { (float)(x * tileSize),(float)(y * tileSize) };
+                std::cout << pos.x << " " << pos.y << std::endl;
+                switch (tileType) {
+                    case 0:
+                        DrawTexturePro(text, { 32*0,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                        break;
+                    case 1:
+                        DrawTexturePro(text, { 32*1,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                        break;
+                    case 2:
+                        DrawTexturePro(text, { 32*2,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                        break;
+                    case 3:
+                        DrawTexturePro(text, { 32*3,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                    case 4:
+                        DrawTexturePro(text, { 32*4,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                    default:
+                        break;
+                }
             }
         }
 
@@ -79,6 +105,5 @@ int main() {
         EndDrawing();
     }
     UnloadTexture(text);
-    UnloadImage(img);
     CloseWindow();
 }
