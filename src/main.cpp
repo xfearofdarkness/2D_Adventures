@@ -12,15 +12,14 @@ bool checkCollision(const Rectangle& rect1, const Rectangle& rect2) {
 }
 
 int main() {
-    SetConfigFlags(FLAG_VSYNC_HINT);
-    InitWindow(640, 480, "2D Adventures Alpha");
+    InitWindow(480, 360, "2D Adventures Alpha");
     Texture2D text = LoadTexture("../res/icons.png");
     if (text.id == 0) {
         std::cout << "Failed to load texture" << std::endl;
         return 1;
     }
     SetTextureFilter(text, TEXTURE_FILTER_POINT);
-    SetTargetFPS(60);
+    SetTargetFPS(1000);
     Level level;
     std::vector<std::vector<int>> tileMap = level.GetTileMap();
     Player player = { 320, 240 };
@@ -35,10 +34,10 @@ int main() {
         player.update(player, deltaTime);
         enemy.moveTowardPlayer({ player.x, player.y }, deltaTime);
 
-        camera.target = { roundf(player.x + 16.0f), roundf(player.y + 16.0f) };
-        camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+        camera.target = { player.x + 16.0f, player.y + 16.0f };
+        camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
         camera.rotation = 0.0f;
-        camera.zoom = 1.0f;
+        camera.zoom = 2.0f;
 
         // Check collision
         bool isColliding = checkCollision(player.getBoundingBox(), enemy.getBoundingBox());
@@ -57,7 +56,6 @@ int main() {
             for (int x = 0; x < mapWidth; x++) {
                 int tileType = tileMap[y][x];
                 Vector2 pos = { (float)(x * tileSize),(float)(y * tileSize) };
-                std::cout << pos.x << " " << pos.y << std::endl;
                 switch (tileType) {
                     case 0:
                         DrawTexturePro(text, { 32*0,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
@@ -70,8 +68,11 @@ int main() {
                         break;
                     case 3:
                         DrawTexturePro(text, { 32*3,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                        break;
                     case 4:
+                        DrawTexturePro(text, { 32*0,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
                         DrawTexturePro(text, { 32*4,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
+                        break;
                     default:
                         break;
                 }
@@ -82,7 +83,7 @@ int main() {
         DrawTexturePro(
             text,
             { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
-            { roundf(player.x), roundf(player.y), 32, 32 },
+            { camera.target.x-16, camera.target.y - 16,32, 32 },
             { 0, 0 },
             0,
             WHITE
@@ -98,6 +99,7 @@ int main() {
             RED
         );
         EndMode2D();
+        DrawFPS(0,0);
         // Draw UI
         if (isColliding) {
             DrawText("Collision Detected!", 20, 80, 20, RED);

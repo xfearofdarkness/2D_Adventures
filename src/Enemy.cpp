@@ -6,6 +6,7 @@
 #include <cmath>
 
 void Enemy::moveTowardPlayer(const Vector2& playerPosition, float deltaTime) {
+    //TODO: implement enemy not following player if out of range
     float speed = 75.0f; // Enemy speed
     Vector2 directionVector = { playerPosition.x - x, playerPosition.y - y };
 

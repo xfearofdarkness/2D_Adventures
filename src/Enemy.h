@@ -12,6 +12,7 @@ struct Enemy {
     int animationIndex = 0;
     float animationTimer = 0.0f;
     float stepCount = 0.0f;
+    Vector2 pos{x, y};
     Rectangle srcRect = { 0, 32, 32, 32 };
 
     [[nodiscard]] Rectangle getBoundingBox() const {
