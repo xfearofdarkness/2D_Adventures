@@ -35,6 +35,7 @@ int main() {
         enemy.moveTowardPlayer({ player.x, player.y }, deltaTime);
 
         camera.target = { player.x + 16.0f, player.y + 16.0f };
+        camera.target = {roundf(camera.target.x), roundf(camera.target.y)};
         camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
         camera.rotation = 0.0f;
         camera.zoom = 2.0f;
@@ -50,32 +51,34 @@ int main() {
         BeginMode2D(camera);
         ClearBackground(BLACK);
 
-        int mapWidth = 32, mapHeight = 32;
-        int tileSize = level.tile_size();
+        const int mapWidth = 32, mapHeight = 32;
+        const int tileSize = level.tile_size();
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
                 int tileType = tileMap[y][x];
-                Vector2 pos = { (float)(x * tileSize),(float)(y * tileSize) };
-                switch (tileType) {
-                    case 0:
-                        DrawTexturePro(text, { 32*0,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
-                        break;
-                    case 1:
-                        DrawTexturePro(text, { 32*1,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
-                        break;
-                    case 2:
-                        DrawTexturePro(text, { 32*2,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
-                        break;
-                    case 3:
-                        DrawTexturePro(text, { 32*3,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
-                        break;
-                    case 4:
-                        DrawTexturePro(text, { 32*0,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
-                        DrawTexturePro(text, { 32*4,0, 32, 32 }, {pos.x, pos.y, (float)tileSize, (float)tileSize}, {0,0}, 0, RAYWHITE);
-                        break;
-                    default:
-                        break;
+                Vector2 pos = {
+                    static_cast<float>(x * tileSize),
+                    static_cast<float>(y * tileSize)
+                };
+
+                Rectangle destRect = {
+                    pos.x,
+                    pos.y,
+                    static_cast<float>(tileSize),
+                    static_cast<float>(tileSize)
+                };
+
+                Rectangle srcRect = {
+                    static_cast<float>(tileType * 32),
+                    0.0f,
+                    32.0f,
+                    32.0f
+                };
+                if (tileType == 4) {
+                    DrawTexturePro(text, {0,0,32,32}, destRect, {0, 0}, 0, RAYWHITE);
                 }
+
+                DrawTexturePro(text, srcRect, destRect, {0, 0}, 0, RAYWHITE);
             }
         }
 
@@ -83,7 +86,7 @@ int main() {
         DrawTexturePro(
             text,
             { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
-            { camera.target.x-16, camera.target.y - 16,32, 32 },
+            { roundf(player.x), roundf(player.y),32, 32 },
             { 0, 0 },
             0,
             WHITE
