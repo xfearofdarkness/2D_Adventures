@@ -14,8 +14,8 @@ Level::~Level() {
 
 }
 
-std::vector<std::vector<int>> Level::loadTilemap(const std::string &filename) {
-    std::vector<std::vector<int>> tilemap;
+std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filename) {
+    std::vector<std::vector<TileType>> tilemap;
     std::ifstream file(filename);
 
     if (!file.is_open()) {
@@ -27,12 +27,14 @@ std::vector<std::vector<int>> Level::loadTilemap(const std::string &filename) {
     int rowNum = 0;
     while (std::getline(file, line)) {
         lineNum++;
-        std::vector<int> row;
+        std::vector<TileType> row;
         std::stringstream ss(line);
         std::string value;
         while (std::getline(ss, value, ',')) {
             try {
-                row.push_back(std::stoi(value));
+                int tileValue = std::stoi(value);  // Convert the string value to an int
+                TileType tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum
+                row.push_back(tileType);
             } catch (std::invalid_argument &e) {
                 throw std::runtime_error("Error: Invalid value at line " + std::to_string(lineNum) + ": " + value);
             } catch (std::out_of_range &e) {
@@ -46,6 +48,20 @@ std::vector<std::vector<int>> Level::loadTilemap(const std::string &filename) {
     std::cout << "rows: "<< rowNum << " lines: " << lineNum << std::endl;
     std::cout << "tilemap loaded successfully" << std::endl;
     return tilemap;
+}
+
+TileType Level::getTileAt(int playerX, int playerY) const {
+    // Convert player pixel position to tile indices
+    int tileX = playerX / 32;
+    int tileY = playerY / 32;
+
+    // Bounds check
+    if (tileX < 0 || tileX >= m_tilemap[0].size() || tileY < 0 || tileY >= m_tilemap.size()) {
+        throw std::out_of_range("Tile coordinates are out of bounds");
+    }
+
+    // Return the tile at the given tile coordinates
+    return m_tilemap[tileY][tileX];
 }
 
 

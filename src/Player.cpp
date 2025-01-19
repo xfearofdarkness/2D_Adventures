@@ -1,62 +1,125 @@
-//
-// Created by jamie on 03.01.2025.
-//
-
 #include "Player.h"
+#include <cmath>
+#include <iostream>
 
+Player::Player(Vector2 pos, const std::vector<std::vector<TileType>>& tilemap)
+    : pos(pos), m_tilemap(tilemap) {}
 
+Player::~Player() {}
 
-void Player::update(Player &player, float deltaTime) {
-    move(player, deltaTime);
+void Player::update(float deltaTime) {
+    move(deltaTime);
 }
 
-void move(Player& player, float deltaTime) {
+void Player::move(float deltaTime) {
     bool up = IsKeyDown(KEY_UP) || IsKeyDown(KEY_W);
     bool down = IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S);
     bool left = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A);
     bool right = IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D);
-    float speed = 100.0f; // Speed in pixels per second
+
+    float speed = 100.0f;
     bool moved = false;
-    bool shouldMove = true;
 
-    if (up && down) {
-        shouldMove = false;
+    // Cancel out opposing directions
+    if (up && down) up = down = false;
+    if (left && right) left = right = false;
+
+    Vector2 moveVec = {0.0f, 0.0f};
+
+    // Calculate movement vector
+    if (up) {
+        moveVec.y -= speed * deltaTime;
+        this->direction = 1;
+        moved = true;
     }
-    if (left && right) {
-        shouldMove = false;
+    if (down) {
+        moveVec.y += speed * deltaTime;
+        this->direction = 0;
+        moved = true;
     }
-    if (shouldMove) {
-        if (up) {
-            player.y -= speed * deltaTime;
-            player.direction = 1; // Up
-            moved = true;
-        }
-        if (down) {
-            player.y += speed * deltaTime;
-            player.direction = 0; // Down
-            moved = true;
-        }
-        if (left) {
-            player.x -= speed * deltaTime;
-            player.direction = 2; // Left
-            moved = true;
-        }
-        if (right) {
-            player.x += speed * deltaTime;
-            player.direction = 3; // Right
-            moved = true;
-        }
+    if (left) {
+        moveVec.x -= speed * deltaTime;
+        this->direction = 2;
+        moved = true;
+    }
+    if (right) {
+        moveVec.x += speed * deltaTime;
+        this->direction = 3;
+        moved = true;
     }
 
+    // Try to move with collision resolution
+    moveWithCollision(moveVec);
 
-
-    // Animation logic
+    // Animation update
     if (moved) {
-        player.stepCount += speed * deltaTime;
-
-        if (player.stepCount > 16.0f) { // Change frame every 32 pixels
-            player.stepCount = 0.0f;
-            player.animationIndex = (player.animationIndex + 1) % 2; // 2 frames per direction
+        this->stepCount += speed * deltaTime;
+        if (this->stepCount > 16.0f) {
+            this->stepCount = 0.0f;
+            this->animationIndex = (this->animationIndex + 1) % 2;
         }
     }
+}
+
+void Player::moveWithCollision(Vector2 moveVec) {
+    Vector2 targetPos = {
+        this->pos.x + moveVec.x,
+        this->pos.y + moveVec.y
+    };
+
+    // Try moving on X axis first
+    if (moveVec.x != 0) {
+        Vector2 xMovement = {moveVec.x, 0};
+        if (!checkCollision({this->pos.x + xMovement.x, this->pos.y})) {
+            this->pos.x += xMovement.x;
+        }
+    }
+
+    // Then try moving on Y axis
+    if (moveVec.y != 0) {
+        Vector2 yMovement = {0, moveVec.y};
+        if (!checkCollision({this->pos.x, this->pos.y + yMovement.y})) {
+            this->pos.y += yMovement.y;
+        }
+    }
+}
+
+bool Player::checkCollision(Vector2 testPos) {
+    Rectangle bounds = {
+        testPos.x,
+        testPos.y,
+        getBoundingBox().width,
+        getBoundingBox().height
+    };
+
+    int startX = static_cast<int>(std::floor(bounds.x / 32));
+    int startY = static_cast<int>(std::floor(bounds.y / 32));
+    int endX = static_cast<int>(std::floor((bounds.x + bounds.width) / 32));
+    int endY = static_cast<int>(std::floor((bounds.y + bounds.height) / 32));
+
+    // Check each potentially colliding tile
+    for (int x = startX; x <= endX; ++x) {
+        for (int y = startY; y <= endY; ++y) {
+            if (x < 0 || y < 0 ||
+                x >= static_cast<int>(m_tilemap[0].size()) ||
+                y >= static_cast<int>(m_tilemap.size())) {
+                return true; // Collision with map bounds
+            }
+
+            if (isSolid(m_tilemap[y][x])) {
+                Rectangle tileRect = {
+                    x * 32.0f,
+                    y * 32.0f,
+                    32.0f,
+                    32.0f
+                };
+
+                if (CheckCollisionRecs(bounds, tileRect)) {
+                    return true; // Collision detected
+                }
+            }
+        }
+    }
+
+    return false; // No collision
 }

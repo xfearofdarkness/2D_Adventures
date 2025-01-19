@@ -36,6 +36,7 @@ add_executable(${PROJECT_NAME}
         src/Assert.h
         src/Level.cpp
         src/Level.h
+        src/Tile.h
 )
 
 # Link with raylib

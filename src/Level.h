@@ -8,13 +8,17 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include "Tile.h"
 
 class Level {
 public:
     Level();
     ~Level();
-    static std::vector<std::vector<int>> loadTilemap(const std::string& filename);
-    [[nodiscard]] std::vector<std::vector<int>> GetTileMap() const {
+    static std::vector<std::vector<TileType>> loadTilemap(const std::string& filename);
+
+    TileType getTileAt(int x, int y) const;
+
+    [[nodiscard]] std::vector<std::vector<TileType>> GetTileMap() const {
         return m_tilemap;
     }
 
@@ -23,7 +27,7 @@ public:
     }
 
 private:
-    std::vector<std::vector<int>> m_tilemap;
+    std::vector<std::vector<TileType>> m_tilemap;
     int tileSize = 32;
 };
 
