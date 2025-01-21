@@ -23,7 +23,7 @@ class Player {
     Rectangle srcRect = { 0, 32, 32, 32 };
 
     [[nodiscard]] Rectangle getBoundingBox() const {
-        return { pos.x, pos.y, 32, 32 }; // Define the player's collision box
+        return { pos.x+4, pos.y+2, 24, 28 }; // Define the player's collision box
     }
 
     void update(float deltaTime);

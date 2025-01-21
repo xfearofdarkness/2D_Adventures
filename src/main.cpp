@@ -2,12 +2,15 @@
 #include <cmath>
 #include <map>
 
+#include "Assert.h"
 #include "raylib.h"
 #include "Player.h"
 #include "Enemy.h"
 #include "Level.h"
 
-
+bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
+    return e1.y < e2.y;
+}
 int main() {
     InitWindow(480, 360, "2D Adventures Alpha");
     Texture2D text = LoadTexture("../res/icons.png");
@@ -20,8 +23,11 @@ int main() {
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
     Player player({360, 320}, tileMap);
-    Enemy enemy = { 400, 300 };
-
+    std::vector<Enemy> enemies;
+    for (int i = 0; i < 10; i++) {
+        auto enemy = Enemy(static_cast<float>(GetRandomValue(0,32*32)), static_cast<float>(GetRandomValue(0,32*32)));
+        enemies.push_back(enemy);
+    }
     Camera2D camera = { 0 };
 
     while (!WindowShouldClose()) {
@@ -29,13 +35,22 @@ int main() {
 
         // Update logic
         player.update(deltaTime);
+
         //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
+        std::ranges::sort(enemies, SortEntityByYPos);
+
+
+        for (auto& e : enemies) { //use reference to not copy the whole thing
+            if (!e.checkCollision(player.getBoundingBox())) {
+                e.moveTowardPlayer(player.pos, deltaTime);
+            }
+        }
+
 
         camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
-        camera.target = {roundf(camera.target.x), roundf(camera.target.y)};
         camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
         camera.rotation = 0.0f;
-        camera.zoom = 3.0f;
+        camera.zoom = 2.0f;
 
         // Check collision
         /*
@@ -85,21 +100,28 @@ int main() {
         DrawTexturePro(
             text,
             { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
-            { roundf(player.pos.x), roundf(player.pos.y),32, 32 },
+            { player.pos.x, player.pos.y,32, 32 },
             { 0, 0 },
             0,
             WHITE
         );
+        DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
+        if (!enemies.empty()) {
+            // Draw enemy
+            for (auto & enemy : enemies) {
+                DrawTexturePro(
+                text,
+                { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
+                { enemy.x, enemy.y, 32, 32 },
+                { 0, 0 },
+                0,
+                GREEN
+            );
+                DrawRectangleLinesEx(enemy.getBoundingBox(), 0.5, RED);
+            }
 
-        // Draw enemy
-        DrawTexturePro(
-            text,
-            { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
-            { enemy.x, enemy.y, 32, 32 },
-            { 0, 0 },
-            0,
-            RED
-        );
+        }
+
 
         EndMode2D();
         DrawFPS(0,0);

@@ -86,8 +86,8 @@ void Player::moveWithCollision(Vector2 moveVec) {
 
 bool Player::checkCollision(Vector2 testPos) {
     Rectangle bounds = {
-        testPos.x,
-        testPos.y,
+        testPos.x+4,
+        testPos.y+2,
         getBoundingBox().width,
         getBoundingBox().height
     };
