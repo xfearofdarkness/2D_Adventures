@@ -33,7 +33,7 @@ std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filena
         while (std::getline(ss, value, ',')) {
             try {
                 int tileValue = std::stoi(value);  // Convert the string value to an int
-                TileType tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum
+                auto tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum
                 row.push_back(tileType);
             } catch (std::invalid_argument &e) {
                 throw std::runtime_error("Error: Invalid value at line " + std::to_string(lineNum) + ": " + value);

@@ -37,6 +37,7 @@ add_executable(${PROJECT_NAME}
         src/Level.cpp
         src/Level.h
         src/Tile.h
+        src/raygui.h
 )
 
 # Link with raylib

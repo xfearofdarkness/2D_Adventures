@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <map>
-
+#include "raygui.h"
 #include "Assert.h"
 #include "raylib.h"
 #include "Player.h"
@@ -13,8 +13,8 @@ bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
 }
 
 RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<TileType>>& tilemap,Texture2D tileAtlas, int width, int height) {
-    int mapWidth = tilemap[0].size();
-    int mapHeight = tilemap.size();
+    int mapWidth = static_cast<int>(tilemap[0].size());
+    int mapHeight = static_cast<int>(tilemap.size());
 
     RenderTexture2D renderTexture = LoadRenderTexture(width*32, height*32);
 
@@ -50,13 +50,14 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
 
 int main() {
     InitWindow(480, 360, "2D Adventures Alpha");
+
     Texture2D text = LoadTexture("../res/icons.png");
     if (text.id == 0) {
         std::cout << "Failed to load texture" << std::endl;
         return 1;
     }
 
-    SetTargetFPS(1000);
+    SetTargetFPS(120);
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
     Player player({360, 320}, tileMap);
@@ -79,27 +80,17 @@ int main() {
         //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
         std::ranges::sort(enemies, SortEntityByYPos);
 
-
         for (auto& e : enemies) { //use reference to not copy the whole thing
             if (!e.checkCollision(player.getBoundingBox())) {
                 e.moveTowardPlayer(player.pos, deltaTime);
             }
         }
 
-
         camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
         camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
         camera.rotation = 0.0f;
         camera.zoom = 2.0f;
 
-        // Check collision
-        /*
-        if (isSolid(level.getTileAt(player.pos.x, player.pos.y))) {
-            std::cout << "Tile at (" << player.pos.x << ", " << player.pos.y << ") is solid!" << std::endl;
-        } else {
-            std::cout << "Tile at (" << player.pos.x << ", " << player.pos.y << ") is not solid." << std::endl;
-        }
-        */
 
         BeginDrawing();
         BeginMode2D(camera);
