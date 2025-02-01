@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <map>
+#define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #include "Assert.h"
 #include "raylib.h"
@@ -58,10 +59,12 @@ int main() {
     }
 
     SetTargetFPS(120);
+    SetExitKey(0);
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
     Player player({360, 320}, tileMap);
     std::vector<Enemy> enemies;
+
 
     for (int i = 0; i < 10; i++) {
         auto enemy = Enemy(static_cast<float>(GetRandomValue(0,32*32)), static_cast<float>(GetRandomValue(0,32*32)));
@@ -70,72 +73,121 @@ int main() {
     Camera2D camera = { 0 };
     RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, text, 32, 32);
     SetTextureWrap(text, TEXTURE_WRAP_CLAMP);
+    bool showMenu = true;
+    bool startGame = false;
+    bool showHelp = false;
 
     while (!WindowShouldClose()) {
+        if (GetKeyPressed() == KEY_ESCAPE) {
+            startGame = !startGame;
+            showMenu = !showMenu;
+        }
+        if (showMenu) {
+            guiFont.baseSize = 5;
+            if (int start = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), 100, 200, 40 }, "Start Game")) {
+                startGame = true;
+                showMenu = false;
+            }
+            if (int quit = GuiButton({static_cast<float>(GetScreenWidth()/2-100),200.0f,200,40}, "Quit Game")) {
+                break;
+            }
+            if (int help = GuiButton({static_cast<float>(GetScreenWidth()/2-100),150.0f,200,40}, "Help and Controls")) {
+                showHelp = true;
+                showMenu = false;
+            }
+            BeginDrawing();
+            ClearBackground(SKYBLUE);
+            guiFont.baseSize = 3;
+            GuiLabel({ 150, 0, 200, 100 }, "MAIN MENU");
+            guiFont.baseSize = 5;
+            EndDrawing();
+        }
+
+        if (showHelp) {
+            BeginDrawing();
+            ClearBackground(SKYBLUE);
+
+            int done = GuiMessageBox({0,0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())},"Controls" , "", "OK");
+
+            guiFont.baseSize = 3;
+            GuiLabel({ 60, 80, 400, 20 }, "Move with WASD");
+            GuiLabel({ 60, 110, 400, 20 }, "Hit with C or CTRL");
+            GuiLabel({ 60, 140, 400, 20 }, "Press ESC to pause.");
+            guiFont.baseSize = 5;
+            GuiLabel({ 60, 190, 400, 30 }, "A Game for a school CS");
+            GuiLabel({ 60, 230, 400, 30 }, "project by Jamie Huta");
+            if (done == 1 || done == 0) {
+                showHelp = false;
+                showMenu = true;
+            }
+            EndDrawing();
+        }
 
         float deltaTime = GetFrameTime();
-        // Update logic
-        player.update(deltaTime);
+        if (startGame) {
+            // Update logic
+            player.update(deltaTime);
 
-        //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
-        std::ranges::sort(enemies, SortEntityByYPos);
+            //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
+            std::ranges::sort(enemies, SortEntityByYPos);
 
-        for (auto& e : enemies) { //use reference to not copy the whole thing
-            if (!e.checkCollision(player.getBoundingBox())) {
-                e.moveTowardPlayer(player.pos, deltaTime);
+            for (auto& e : enemies) { //use reference to not copy the whole thing
+                if (!e.checkCollision(player.getBoundingBox())) {
+                    e.moveTowardPlayer(player.pos, deltaTime);
+                }
             }
-        }
 
-        camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
-        camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
-        camera.rotation = 0.0f;
-        camera.zoom = 2.0f;
+            camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
+            camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
+            camera.rotation = 0.0f;
+            camera.zoom = 2.0f;
 
 
-        BeginDrawing();
-        BeginMode2D(camera);
-        ClearBackground(BLANK);
+            BeginDrawing();
+            BeginMode2D(camera);
+            ClearBackground(BLANK);
 
-        //Draw tile map
-        DrawTexturePro(
-           tilemapTexture.texture,
-           Rectangle{ 0, 0, (float)tilemapTexture.texture.width, (float)-tilemapTexture.texture.height }, // Flip vertically
-           Rectangle{ 0, 0, (float)tilemapTexture.texture.width, (float)tilemapTexture.texture.height },
-           Vector2{ 0, 0 },
-           0.0f,
-           WHITE
-       );
+            //Draw tile map
+            DrawTexturePro(
+               tilemapTexture.texture,
+               Rectangle{ 0, 0, (float)tilemapTexture.texture.width, (float)-tilemapTexture.texture.height }, // Flip vertically
+               Rectangle{ 0, 0, (float)tilemapTexture.texture.width, (float)tilemapTexture.texture.height },
+               Vector2{ 0, 0 },
+               0.0f,
+               WHITE
+           );
 
-        // Draw player
-        DrawTexturePro(
-            text,
-            { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
-            { player.pos.x, player.pos.y,32, 32 },
-            { 0, 0 },
-            0,
-            WHITE
-        );
-        DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
-        if (!enemies.empty()) {
-            // Draw enemy
-            for (auto & enemy : enemies) {
-                DrawTexturePro(
+            // Draw player
+            DrawTexturePro(
                 text,
-                { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
-                { enemy.x, enemy.y, 32, 32 },
+                { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
+                { player.pos.x, player.pos.y,32, 32 },
                 { 0, 0 },
                 0,
-                GREEN
+                WHITE
             );
-                DrawRectangleLinesEx(enemy.getBoundingBox(), 0.5, RED);
+            DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
+            if (!enemies.empty()) {
+                // Draw enemy
+                for (auto & enemy : enemies) {
+                    DrawTexturePro(
+                    text,
+                    { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
+                    { enemy.x, enemy.y, 32, 32 },
+                    { 0, 0 },
+                    0,
+                    GREEN
+                );
+                    DrawRectangleLinesEx(enemy.getBoundingBox(), 0.5, RED);
+                }
+
             }
+            EndTextureMode();
 
+            EndMode2D();
+            DrawFPS(0,0);
+            EndDrawing();
         }
-        EndTextureMode();
-
-        EndMode2D();
-        DrawFPS(0,0);
-        EndDrawing();
     }
     UnloadTexture(text);
     UnloadRenderTexture(tilemapTexture);
