@@ -85,6 +85,7 @@ void Player::moveWithCollision(Vector2 moveVec) {
 }
 
 bool Player::checkCollision(Vector2 testPos) {
+    //adjust player bounds for sprite offset
     Rectangle bounds = {
         testPos.x+4,
         testPos.y+2,

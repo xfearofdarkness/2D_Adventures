@@ -10,7 +10,7 @@
 #include "Level.h"
 
 bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
-    return e1.y < e2.y;
+    return e1.pos.y < e2.pos.y;
 }
 
 RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<TileType>>& tilemap,Texture2D tileAtlas, int width, int height) {
@@ -27,8 +27,8 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
             TileType tile = tilemap[y][x];
 
             Vector2 pos = {
-                static_cast<float>(x * 32),
-                static_cast<float>(y * 32)
+                roundf(static_cast<float>(x * 32)),
+                roundf(static_cast<float>(y * 32))
             };
 
 
@@ -53,6 +53,7 @@ int main() {
     InitWindow(480, 360, "2D Adventures Alpha");
 
     Texture2D text = LoadTexture("../res/icons.png");
+    SetTextureFilter(text, TEXTURE_FILTER_POINT);
     if (text.id == 0) {
         std::cout << "Failed to load texture" << std::endl;
         return 1;
@@ -67,8 +68,27 @@ int main() {
 
 
     for (int i = 0; i < 10; i++) {
-        auto enemy = Enemy(static_cast<float>(GetRandomValue(0,32*32)), static_cast<float>(GetRandomValue(0,32*32)));
-        enemies.push_back(enemy);
+        bool spawned = false;
+
+        // Maximal 50 Versuche pro Gegner, um einen gültigen Platz zu finden
+        for (int attempts = 0; attempts < 50; attempts++) {
+            int tileX = GetRandomValue(0, 32 - 1);  // Zufälliges Tile innerhalb der Map
+            int tileY = GetRandomValue(0, 32 - 1);
+
+            if (!isSolid(level.getTileAt(tileX, tileY))) {  // Stelle ist begehbar
+                // Setze den Gegner genau in die Mitte des Tiles
+                float x = tileX * 32.0f + 16.0f;
+                float y = tileY * 32.0f + 16.0f;
+
+                enemies.push_back(Enemy({x, y}, tileMap));
+                spawned = true;
+                break;
+            }
+        }
+
+        if (!spawned) {
+            std::cout << "Kein passender Spawnpunkt für Gegner " << i << " gefunden.\n";
+        }
     }
     Camera2D camera = { 0 };
     RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, text, 32, 32);
@@ -132,8 +152,8 @@ int main() {
             std::ranges::sort(enemies, SortEntityByYPos);
 
             for (auto& e : enemies) { //use reference to not copy the whole thing
-                if (!e.checkCollision(player.getBoundingBox())) {
-                    e.moveTowardPlayer(player.pos, deltaTime);
+                if (!e.checkCollisionWithPlayer(player.getBoundingBox())) {
+                    e.update(player.pos, deltaTime);
                 }
             }
 
@@ -173,7 +193,7 @@ int main() {
                     DrawTexturePro(
                     text,
                     { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
-                    { enemy.x, enemy.y, 32, 32 },
+                    { enemy.pos.x, enemy.pos.y, 32, 32 },
                     { 0, 0 },
                     0,
                     GREEN
