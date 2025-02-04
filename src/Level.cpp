@@ -57,7 +57,8 @@ TileType Level::getTileAt(int playerX, int playerY) const {
 
     // Bounds check
     if (tileX < 0 || tileX >= m_tilemap[0].size() || tileY < 0 || tileY >= m_tilemap.size()) {
-        throw std::out_of_range("Tile coordinates are out of bounds");
+        std::cout << "out of range for: " << tileX << ", " << tileY << std::endl;
+        return TileType::Barrier;
     }
 
     // Return the tile at the given tile coordinates

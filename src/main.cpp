@@ -48,8 +48,8 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
     return renderTexture;
 }
 
-
 int main() {
+    SetConfigFlags(FLAG_WINDOW_HIDDEN);
     InitWindow(480, 360, "2D Adventures Alpha");
 
     Texture2D text = LoadTexture("../res/icons.png");
@@ -58,8 +58,9 @@ int main() {
         std::cout << "Failed to load texture" << std::endl;
         return 1;
     }
-
-    SetTargetFPS(120);
+    const int hz = GetMonitorRefreshRate(GetCurrentMonitor());
+    std::cout << "Monitor refresh rate: " << hz << std::endl;
+    SetTargetFPS(hz);
     SetExitKey(0);
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
@@ -69,16 +70,14 @@ int main() {
 
     for (int i = 0; i < 10; i++) {
         bool spawned = false;
-
-        // Maximal 50 Versuche pro Gegner, um einen gültigen Platz zu finden
         for (int attempts = 0; attempts < 50; attempts++) {
-            int tileX = GetRandomValue(0, 32 - 1);  // Zufälliges Tile innerhalb der Map
+            int tileX = GetRandomValue(0, 32 - 1);
             int tileY = GetRandomValue(0, 32 - 1);
 
-            if (!isSolid(level.getTileAt(tileX, tileY))) {  // Stelle ist begehbar
-                // Setze den Gegner genau in die Mitte des Tiles
-                float x = tileX * 32.0f + 16.0f;
-                float y = tileY * 32.0f + 16.0f;
+            if (!isSolid(level.getTileAt(tileX*32, tileY*32))) {
+
+                float x = tileX * 32.0f;
+                float y = tileY * 32.0f;
 
                 enemies.push_back(Enemy({x, y}, tileMap));
                 spawned = true;
@@ -87,7 +86,7 @@ int main() {
         }
 
         if (!spawned) {
-            std::cout << "Kein passender Spawnpunkt für Gegner " << i << " gefunden.\n";
+            std::cout << "No spawn point for " << i << " was found.\n";
         }
     }
     Camera2D camera = { 0 };
@@ -97,6 +96,7 @@ int main() {
     bool startGame = false;
     bool showHelp = false;
 
+    ClearWindowState(FLAG_WINDOW_HIDDEN); //unhide window after initialization
     while (!WindowShouldClose()) {
         if (GetKeyPressed() == KEY_ESCAPE) {
             startGame = !startGame;
