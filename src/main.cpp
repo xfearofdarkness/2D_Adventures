@@ -9,10 +9,38 @@
 #include "Enemy.h"
 #include "Level.h"
 
+
+const Level level;
+std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
+Player player({360, 320}, tileMap);
+std::vector<Enemy> enemies;
 bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
     return e1.pos.y < e2.pos.y;
 }
 
+void SpawnEnemies(std::vector<std::vector<TileType>>& tileMap, std::vector<Enemy>& enemies, int amount) {
+    for (int i = 0; i < amount; i++) {
+        bool spawned = false;
+        for (int attempts = 0; attempts < amount*3; attempts++) {
+            int tileX = GetRandomValue(0, 32 - 1);
+            int tileY = GetRandomValue(0, 32 - 1);
+
+            if (!isSolid(level.getTileAt(tileX*32, tileY*32))) {
+
+                float x = tileX * 32.0f;
+                float y = tileY * 32.0f;
+
+                enemies.push_back(Enemy({x, y}, tileMap));
+                spawned = true;
+                break;
+            }
+        }
+
+        if (!spawned) {
+            std::cout << "No spawn point for " << i << " was found.\n";
+        }
+    }
+}
 RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<TileType>>& tilemap,Texture2D tileAtlas, int width, int height) {
     int mapWidth = static_cast<int>(tilemap[0].size());
     int mapHeight = static_cast<int>(tilemap.size());
@@ -62,33 +90,9 @@ int main() {
     std::cout << "Monitor refresh rate: " << hz << std::endl;
     SetTargetFPS(hz);
     SetExitKey(0);
-    Level level;
-    std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
-    Player player({360, 320}, tileMap);
-    std::vector<Enemy> enemies;
-
-
-    for (int i = 0; i < 10; i++) {
-        bool spawned = false;
-        for (int attempts = 0; attempts < 50; attempts++) {
-            int tileX = GetRandomValue(0, 32 - 1);
-            int tileY = GetRandomValue(0, 32 - 1);
-
-            if (!isSolid(level.getTileAt(tileX*32, tileY*32))) {
-
-                float x = tileX * 32.0f;
-                float y = tileY * 32.0f;
-
-                enemies.push_back(Enemy({x, y}, tileMap));
-                spawned = true;
-                break;
-            }
-        }
-
-        if (!spawned) {
-            std::cout << "No spawn point for " << i << " was found.\n";
-        }
-    }
+    int spawnAmount = 10;
+    enemies.reserve(spawnAmount);
+    SpawnEnemies(tileMap, enemies, spawnAmount);
     Camera2D camera = { 0 };
     RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, text, 32, 32);
     SetTextureWrap(text, TEXTURE_WRAP_CLAMP);
@@ -146,15 +150,28 @@ int main() {
         float deltaTime = GetFrameTime();
         if (startGame) {
             // Update logic
-            player.update(deltaTime);
+            player.update(deltaTime, enemies);
+
 
             //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
-            std::ranges::sort(enemies, SortEntityByYPos);
-
-            for (auto& e : enemies) { //use reference to not copy the whole thing
-                if (!e.checkCollisionWithPlayer(player.getBoundingBox())) {
-                    e.update(player.pos, deltaTime);
+            if (!enemies.empty()) {
+                std::ranges::sort(enemies, SortEntityByYPos);
+            }
+            if (!enemies.empty()) {
+                for (auto& e : enemies) { //use reference to not copy the whole thing
+                    if (!e.checkCollisionWithPlayer(player.getBoundingBox())) {
+                        e.update(player.pos, deltaTime);
+                    }
                 }
+            }
+            std::erase_if(enemies, [](auto& e) {
+                return !e.isAlive && !enemies.empty();
+            });
+
+            if (enemies.empty()) {
+                SpawnEnemies(tileMap, enemies, spawnAmount);
+            } else if (static_cast<int>(enemies.size()) <= spawnAmount / 2) {
+                SpawnEnemies(tileMap, enemies, std::clamp(spawnAmount-static_cast<int>(enemies.size()), 1, 10));
             }
 
             camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
@@ -186,6 +203,7 @@ int main() {
                 0,
                 WHITE
             );
+            DrawRectangleLines((int)player.attackBoxRec.x, (int)player.attackBoxRec.y, (int)player.attackBoxRec.width, (int)player.attackBoxRec.height, YELLOW);
             DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
             if (!enemies.empty()) {
                 // Draw enemy

@@ -7,8 +7,17 @@ Player::Player(Vector2 pos, const std::vector<std::vector<TileType>>& tilemap)
 
 Player::~Player() {}
 
-void Player::update(float deltaTime) {
+void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
     move(deltaTime);
+    attack(enemies);
+}
+
+void Player::takeDamage(int damage) {
+    health -= damage;
+    if (health <= 0) {
+        health = 0;
+        isAlive = false;
+    }
 }
 
 void Player::move(float deltaTime) {
@@ -124,3 +133,36 @@ bool Player::checkCollision(Vector2 testPos) {
 
     return false; // No collision
 }
+
+void Player::attack(std::vector<Enemy>& enemies) {
+
+    bool attacking = IsKeyDown(KEY_C) || IsKeyDown(KEY_RIGHT_CONTROL) || IsKeyDown(KEY_LEFT_CONTROL);
+
+    if (!attacking) return;
+
+    Rectangle attackBox;
+
+    switch (direction) {
+        case 0: // Down
+            attackBox = { pos.x + 4, pos.y + 32, 24, 16 };
+        break;
+        case 1: // Up
+            attackBox = { pos.x + 4, pos.y - 16, 24, 16 };
+        break;
+        case 2: // Left
+            attackBox = { pos.x - 16, pos.y + 2, 16, 28 };
+        break;
+        case 3: // Right
+            attackBox = { pos.x + 32, pos.y + 2, 16, 28 };
+        break;
+        default:
+            attackBox = {};
+    }
+    for (Enemy& e : enemies) {
+        if (e.isAlive && CheckCollisionRecs(attackBox, e.getBoundingBox())) {
+            e.takeDamage(1);
+        }
+    }
+    attackBoxRec = attackBox;
+}
+

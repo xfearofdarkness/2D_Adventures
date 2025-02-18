@@ -6,6 +6,7 @@
 #define ENEMY_H
 #include <vector>
 
+
 #include "raylib.h"
 #include "Tile.h"
 
@@ -13,6 +14,7 @@ enum class EnemyState {
     WANDERING,
     CHASING
 };
+class Player;
 
 class Enemy {
 public:
@@ -36,12 +38,19 @@ public:
     [[nodiscard]] bool checkCollisionWithPlayer(const Rectangle &playerBoundingBox) const;
 
     bool checkCollision(Vector2 testPos);
-
+    void takeDamage(int damage);
     void moveWithCollision(Vector2 moveVec);
+    void attack(const Player &player);
+
+    bool isAlive = true;
+
 private:
     std::vector<std::vector<TileType>> m_tileMap;
+
     float m_speed = 75.0f;
+
     EnemyState m_state = EnemyState::WANDERING;
+
     float m_stateTimer = 0.0f;
 };
 

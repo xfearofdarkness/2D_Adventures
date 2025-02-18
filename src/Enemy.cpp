@@ -6,6 +6,7 @@
 #include <cmath>
 #include "raymath.h"
 #include "Tile.h"
+#include "Player.h"
 
 Enemy::Enemy(Vector2 pos, std::vector<std::vector<TileType>>& tileMap) : pos(pos), m_tileMap(tileMap) {
 
@@ -155,3 +156,16 @@ void Enemy::moveWithCollision(Vector2 moveVec) {
         }
     }
 }
+
+void Enemy::attack(const Player &player) {
+}
+
+void Enemy::takeDamage(int damage) {
+    lives -= damage;
+    if (lives <= 0) {
+        lives = 0;
+        isAlive = false;
+    }
+
+}
+

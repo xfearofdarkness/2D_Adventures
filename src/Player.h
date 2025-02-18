@@ -7,8 +7,11 @@
 
 #include <vector>
 
+
 #include "raylib.h"
 #include "Tile.h"
+#include "Enemy.h"
+class Enemy;
 
 class Player {
     public:
@@ -26,14 +29,21 @@ class Player {
         return { pos.x+4, pos.y+2, 24, 28 }; // Define the player's collision box
     }
 
-    void update(float deltaTime);
-
+    void update(float deltaTime, std::vector<Enemy>& enemies);
+    void takeDamage(int damage);
+    void attack(std::vector<Enemy>& enemies);
+    Rectangle attackBoxRec;
 private:
     void move(float deltaTime);
+
     void moveWithCollision(Vector2 moveVec);
+
     bool checkCollision(Vector2 testPos);
+
 private:
     std::vector<std::vector<TileType>> m_tilemap;
+    int health = 8;
+    bool isAlive = true;
 };
 
 
