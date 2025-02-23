@@ -16,6 +16,7 @@ Level::~Level() {
 
 std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filename) {
     std::vector<std::vector<TileType>> tilemap;
+    tilemap.reserve(1024);
     std::ifstream file(filename);
 
     if (!file.is_open()) {
@@ -32,8 +33,8 @@ std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filena
         std::string value;
         while (std::getline(ss, value, ',')) {
             try {
-                int tileValue = std::stoi(value);  // Convert the string value to an int
-                auto tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum
+                int tileValue = std::stoi(value);
+                auto tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum because otherwise it is implementation defined
                 row.push_back(tileType);
             } catch (std::invalid_argument &e) {
                 throw std::runtime_error("Error: Invalid value at line " + std::to_string(lineNum) + ": " + value);
@@ -61,7 +62,6 @@ TileType Level::getTileAt(int playerX, int playerY) const {
         return TileType::Barrier;
     }
 
-    // Return the tile at the given tile coordinates
     return m_tilemap[tileY][tileX];
 }
 

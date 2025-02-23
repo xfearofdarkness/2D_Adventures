@@ -55,19 +55,20 @@ void Enemy::update(const Vector2 &playerPosition, float deltaTime) {
 
 void Enemy::moveTowardPlayer(const Vector2& playerPosition, float deltaTime) {
     Vector2 enemyVec = pos;
-    if (Vector2Distance(playerPosition, enemyVec) > 200.0f) return;
+    const float distanceToPlayer = Vector2Distance(playerPosition, enemyVec);
+    if (distanceToPlayer > 200.0f) return;
 
-     // Enemy speed
+    // Enemy speed
     Vector2 directionVector = { playerPosition.x - pos.x, playerPosition.y - pos.y };
 
+    //Check the current direction
     if (fabs(directionVector.x) > fabs(directionVector.y)) {
         direction = (directionVector.x > 0) ? 3 : 2; // Right or Left
     } else {
         direction = (directionVector.y > 0) ? 0 : 1; // Down or Up
     }
-    // Normalize the direction vector for movement
-    float distance = sqrt(directionVector.x * directionVector.x + directionVector.y * directionVector.y);
-    if (distance > 0.0f) {
+
+    if (const float distance = Vector2Length(directionVector); distance > 0.0f) {
         directionVector.x /= distance;
         directionVector.y /= distance;
 
@@ -125,20 +126,16 @@ bool Enemy::checkCollision(Vector2 testPos) {
                 };
 
                 if (CheckCollisionRecs(bounds, tileRect)) {
-                    return true; // Collision detected
+                    return true;
                 }
             }
         }
     }
 
-    return false; // No collision
+    return false;
 }
 
 void Enemy::moveWithCollision(Vector2 moveVec) {
-    Vector2 targetPos = {
-        this->pos.x + moveVec.x,
-        this->pos.y + moveVec.y
-    };
 
     // Try moving on X axis first
     if (moveVec.x != 0) {
@@ -147,7 +144,6 @@ void Enemy::moveWithCollision(Vector2 moveVec) {
             this->pos.x += xMovement.x;
         }
     }
-
     // Then try moving on Y axis
     if (moveVec.y != 0) {
         Vector2 yMovement = {0, moveVec.y};
@@ -162,6 +158,7 @@ void Enemy::attack(const Player &player) {
 
 void Enemy::takeDamage(int damage) {
     lives -= damage;
+    //Check for death
     if (lives <= 0) {
         lives = 0;
         isAlive = false;

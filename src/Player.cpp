@@ -57,7 +57,6 @@ void Player::move(float deltaTime) {
         moved = true;
     }
 
-    // Try to move with collision resolution
     moveWithCollision(moveVec);
 
     // Animation update
@@ -125,13 +124,13 @@ bool Player::checkCollision(Vector2 testPos) {
                 };
 
                 if (CheckCollisionRecs(bounds, tileRect)) {
-                    return true; // Collision detected
+                    return true;
                 }
             }
         }
     }
 
-    return false; // No collision
+    return false;
 }
 
 void Player::attack(std::vector<Enemy>& enemies) {
@@ -158,6 +157,7 @@ void Player::attack(std::vector<Enemy>& enemies) {
         default:
             attackBox = {};
     }
+    //A little inefficient, oops
     for (Enemy& e : enemies) {
         if (e.isAlive && CheckCollisionRecs(attackBox, e.getBoundingBox())) {
             e.takeDamage(1);
