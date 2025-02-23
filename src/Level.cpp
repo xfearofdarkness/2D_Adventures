@@ -7,7 +7,7 @@
 #include <iostream>
 
 Level::Level() {
-    m_tilemap = loadTilemap("../res/TestMap.csv");
+    m_tilemap = loadTilemap("res/TestMap.csv");
 }
 
 Level::~Level() {

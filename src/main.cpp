@@ -80,7 +80,7 @@ int main() {
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
     InitWindow(480, 360, "2D Adventures Alpha");
 
-    Texture2D text = LoadTexture("../res/icons.png");
+    Texture2D text = LoadTexture("res/icons.png");
     SetTextureFilter(text, TEXTURE_FILTER_POINT);
     if (text.id == 0) {
         std::cout << "Failed to load texture" << std::endl;
