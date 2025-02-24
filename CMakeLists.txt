@@ -11,8 +11,8 @@ set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
 file(GLOB RESOURCES_FILES "${RESOURCE_DIR}/*")
 
 if(WIN32)
-    set(CMAKE_CREATE_WIN32_EXE WIN32)
-    # Check for MSVC
+    
+    
     if(MSVC)
         message(STATUS "Configuring MSVC build")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MD")
