@@ -2,21 +2,25 @@
 #include <cmath>
 #include <iostream>
 
-Player::Player(Vector2 pos, const std::vector<std::vector<TileType>>& tilemap)
-    : pos(pos), m_tilemap(tilemap) {}
+Player::Player(Vector2 pos, Level &level)
+    : pos(pos), m_level(level), attackBoxRec({ 0,0,0,0 }) {
+    state = PlayerState::IDLE;
+   
+}
 
 Player::~Player() {}
 
 void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
     move(deltaTime);
-    attack(enemies);
+    attack(enemies, deltaTime);
 }
 
 void Player::takeDamage(int damage) {
-    health -= damage;
-    if (health <= 0) {
-        health = 0;
-        isAlive = false;
+    m_health -= damage;
+    if (m_health <= 0) {
+        m_health = 0;
+        m_isAlive = false;
+        state = PlayerState::DEAD;
     }
 }
 
@@ -110,12 +114,12 @@ bool Player::checkCollision(Vector2 testPos) {
     for (int x = startX; x <= endX; ++x) {
         for (int y = startY; y <= endY; ++y) {
             if (x < 0 || y < 0 ||
-                x >= static_cast<int>(m_tilemap[0].size()) ||
-                y >= static_cast<int>(m_tilemap.size())) {
+                x >= static_cast<int>(m_level.GetTileMap()[0].size()) ||
+                y >= static_cast<int>(m_level.GetTileMap().size())) {
                 return true; // Collision with map bounds
             }
 
-            if (isSolid(m_tilemap[y][x])) {
+            if (isSolid(m_level.GetTileMap()[y][x])) {
                 Rectangle tileRect = {
                     x * 32.0f,
                     y * 32.0f,
@@ -133,26 +137,33 @@ bool Player::checkCollision(Vector2 testPos) {
     return false;
 }
 
-void Player::attack(std::vector<Enemy>& enemies) {
-
+void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
+    
     bool attacking = IsKeyDown(KEY_C) || IsKeyDown(KEY_RIGHT_CONTROL) || IsKeyDown(KEY_LEFT_CONTROL);
-
-    if (!attacking) return;
-
+    if (attacking) m_stamina_timer -= 1.0f;
+    if (m_stamina_timer < 8.0f && !attacking) {
+        m_stamina_timer += 1.0f;
+    }
+    if (!attacking) {
+        state = PlayerState::IDLE;
+        return;
+    }
+    
+    state = PlayerState::ATTACKING;
     Rectangle attackBox;
 
     switch (direction) {
         case 0: // Down
-            attackBox = { pos.x + 4, pos.y + 32, 24, 16 };
+            attackBox = { pos.x, pos.y + 16, 32, 32 };
         break;
         case 1: // Up
-            attackBox = { pos.x + 4, pos.y - 16, 24, 16 };
+            attackBox = { pos.x, pos.y - 16, 32, 32 };
         break;
         case 2: // Left
-            attackBox = { pos.x - 16, pos.y + 2, 16, 28 };
+            attackBox = { pos.x - 16, pos.y + 2, 32, 32 };
         break;
         case 3: // Right
-            attackBox = { pos.x + 32, pos.y + 2, 16, 28 };
+            attackBox = { pos.x + 16, pos.y + 2, 32, 32 };
         break;
         default:
             attackBox = {};
@@ -163,6 +174,26 @@ void Player::attack(std::vector<Enemy>& enemies) {
             e.takeDamage(1);
         }
     }
+    int tileX = static_cast<int>((attackBox.x + attackBox.width / 2) / 32);
+    int tileY = static_cast<int>((attackBox.y + attackBox.height / 2) / 32);
+
+    // Instead of assuming the entire 32x32 tile is the hit area,
+    // assume only the lower half (the trunk of a tree) is vulnerable.
+    Rectangle treeCollisionRect = { tileX * 32.0f, tileY * 32.0f + 16.0f, 32.0f, 16.0f };
+
+    // Check if the tile is a tree and if the attack box overlaps the tree's "hit" region.
+    if (m_level.getTileAt(tileX * 32, tileY * 32) == TileType::Tree &&
+        CheckCollisionRecs(attackBox, treeCollisionRect)) {
+        m_level.SetTileAt(tileX * 32, tileY * 32, TileType::Grass);
+        std::cout << "Tree chopped! Changed to Grass at: " << tileX << ", " << tileY << std::endl;
+    }
+
     attackBoxRec = attackBox;
 }
+
+void Player::renderAttack() {
+    
+}
+
+
 

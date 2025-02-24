@@ -36,9 +36,9 @@ std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filena
                 int tileValue = std::stoi(value);
                 auto tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum because otherwise it is implementation defined
                 row.push_back(tileType);
-            } catch (std::invalid_argument &e) {
+            } catch (std::invalid_argument) {
                 throw std::runtime_error("Error: Invalid value at line " + std::to_string(lineNum) + ": " + value);
-            } catch (std::out_of_range &e) {
+            } catch (std::out_of_range) {
                 throw std::runtime_error("Error: Value out of range at line: " + std::to_string(lineNum) + ": " + value);
             }
 
@@ -63,6 +63,18 @@ TileType Level::getTileAt(int playerX, int playerY) const {
     }
 
     return m_tilemap[tileY][tileX];
+}
+
+void Level::SetTileAt(int x, int y, TileType type) {
+    int tileX = x / 32;
+    int tileY = y / 32;
+
+    if (tileX < 0 || tileX >= m_tilemap[0].size() || tileY < 0 || tileY >= m_tilemap.size()) {
+        std::cout << "out of range for: " << tileX << ", " << tileY << std::endl;
+        return;
+    }
+    m_tilemap[tileY][tileX] = type;
+    needsRefreshing = true;
 }
 
 

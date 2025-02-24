@@ -10,9 +10,9 @@
 #include "Level.h"
 
 
-const Level level;
+Level level;
 std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
-Player player({360, 320}, tileMap);
+Player player({360, 320}, level);
 std::vector<Enemy> enemies;
 bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
     return e1.pos.y < e2.pos.y;
@@ -41,6 +41,7 @@ void SpawnEnemies(std::vector<std::vector<TileType>>& tileMap, std::vector<Enemy
         }
     }
 }
+
 RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<TileType>>& tilemap,Texture2D tileAtlas, int width, int height) {
     int mapWidth = static_cast<int>(tilemap[0].size());
     int mapHeight = static_cast<int>(tilemap.size());
@@ -72,13 +73,15 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
     }
 
     EndTextureMode();
+    
+    level.needsRefreshing = false;
 
     return renderTexture;
 }
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
-    InitWindow(480, 360, "2D Adventures Alpha");
+    InitWindow(920, 720, "2D Adventures Alpha");
 
     Texture2D text = LoadTexture("res/icons.png");
     SetTextureFilter(text, TEXTURE_FILTER_POINT);
@@ -152,6 +155,11 @@ int main() {
             // Update logic
             player.update(deltaTime, enemies);
 
+            if (level.needsRefreshing) {
+                UnloadRenderTexture(tilemapTexture);
+                tilemapTexture = CreateBackgroundRenderTexture(level.GetTileMap(), text, 32, 32);
+            }
+
 
             //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
             if (!enemies.empty()) {
@@ -203,8 +211,10 @@ int main() {
                 0,
                 WHITE
             );
-            DrawRectangleLines((int)player.attackBoxRec.x, (int)player.attackBoxRec.y, (int)player.attackBoxRec.width, (int)player.attackBoxRec.height, YELLOW);
+            if (player.state == PlayerState::ATTACKING) DrawRectangleLines((int)player.attackBoxRec.x, (int)player.attackBoxRec.y, (int)player.attackBoxRec.width, (int)player.attackBoxRec.height, YELLOW);
+            if (player.state == PlayerState::ATTACKING) DrawTexturePro(text, { player.attackSrcRect.x + player.direction * 32 , player.attackSrcRect.y, 32, 32}, player.attackBoxRec, { 0,0 }, 0, WHITE);
             DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
+            
             if (!enemies.empty()) {
                 // Draw enemy
                 for (auto & enemy : enemies) {

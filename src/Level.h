@@ -26,6 +26,8 @@ public:
         return tileSize;
     }
 
+    void SetTileAt(int x, int y, TileType type);
+    bool needsRefreshing = false;
 private:
     std::vector<std::vector<TileType>> m_tilemap;
     int tileSize = 32;
