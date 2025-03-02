@@ -93,13 +93,13 @@ void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std:
 }
 
 int main() {
-    GameState state = GameState::MENU;
+    auto state = GameState::MENU;
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
-    InitWindow(920, 720, "2D Adventures Alpha");
-
-    Texture2D text = LoadTexture("res/icons.png");
-    SetTextureFilter(text, TEXTURE_FILTER_POINT);
-    if (text.id == 0) {
+    InitWindow(1280,720, "2D Adventures Alpha");
+    Texture2D gameIcon = LoadTexture("res/Icon.png");
+    Texture2D tile_atlas = LoadTexture("res/icons.png");
+    SetTextureFilter(tile_atlas, TEXTURE_FILTER_POINT);
+    if (tile_atlas.id == 0) {
         std::cout << "Failed to load texture" << std::endl;
         return 1;
     }
@@ -115,8 +115,8 @@ int main() {
     enemies.reserve(spawnAmount);
     SpawnEnemies(tileMap, level, enemies, spawnAmount);
     Camera2D camera = { 0 };
-    RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, text, level, 32, 32);
-    SetTextureWrap(text, TEXTURE_WRAP_CLAMP);
+    RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, tile_atlas, level, 32, 32);
+    SetTextureWrap(tile_atlas, TEXTURE_WRAP_CLAMP);
     Player player({360, 320}, level);
     player.initInventory();
 
@@ -138,10 +138,9 @@ int main() {
                 state = GameState::HELP;
             }
             BeginDrawing();
-            ClearBackground(SKYBLUE);
-            guiFont.baseSize = 3;
-            GuiLabel({ static_cast<float>(GetScreenWidth()/2)-200, 0, 200, 100 }, "MAIN MENU");
-            guiFont.baseSize = 5;
+            ClearBackground(LIGHTGRAY);
+            //DrawTextureEx(gameIcon, {0,0}, 0, 3, WHITE);
+            DrawText("MAIN MENU", static_cast<float>(GetScreenWidth()/2-150), static_cast<float>(GetScreenHeight()/2-200), 50, BLACK);
             EndDrawing();
         }
 
@@ -177,7 +176,7 @@ int main() {
         if (state == GameState::GAMEOVER) {
             guiFont.baseSize = 8;
             if (int retry = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-100, 200, 40 }, "Retry")) {
-                ResetGame(player, tileMap, enemies, level, tilemapTexture, text, state);
+                ResetGame(player, tileMap, enemies, level, tilemapTexture, tile_atlas, state);
             }
 
             if (int quit = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-40, 200, 40 }, "Quit")) {
@@ -197,7 +196,7 @@ int main() {
 
             if (level.needsRefreshing) {
                 UnloadRenderTexture(tilemapTexture);
-                tilemapTexture = CreateBackgroundRenderTexture(level.GetTileMap(), text, level, 32, 32);
+                tilemapTexture = CreateBackgroundRenderTexture(level.GetTileMap(), tile_atlas, level, 32, 32);
             }
 
 
@@ -228,7 +227,7 @@ int main() {
             camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
             camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
             camera.rotation = 0.0f;
-            camera.zoom = 2.0f;
+            camera.zoom = 3.0f;
 
 
             BeginDrawing();
@@ -247,7 +246,7 @@ int main() {
 
             // Draw player
             DrawTexturePro(
-                text,
+                tile_atlas,
                 { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
                 { player.pos.x, player.pos.y,32, 32 },
                 { 0, 0 },
@@ -255,14 +254,14 @@ int main() {
                 WHITE
             );
             if (player.state == PlayerState::ATTACKING) DrawRectangleLines((int)player.attackBoxRec.x, (int)player.attackBoxRec.y, (int)player.attackBoxRec.width, (int)player.attackBoxRec.height, YELLOW);
-            if (player.state == PlayerState::ATTACKING) DrawTexturePro(text, { player.attackSrcRect.x + player.direction * 32 , player.attackSrcRect.y, 32, 32}, player.attackBoxRec, { 0,0 }, 0, WHITE);
+            if (player.state == PlayerState::ATTACKING) DrawTexturePro(tile_atlas, { player.attackSrcRect.x + player.direction * 32 , player.attackSrcRect.y, 32, 32}, player.attackBoxRec, { 0,0 }, 0, WHITE);
             DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
-            
+
             if (!enemies.empty()) {
                 // Draw enemy
                 for (auto & enemy : enemies) {
                     DrawTexturePro(
-                    text,
+                    tile_atlas,
                     { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
                     { enemy.pos.x, enemy.pos.y, 32, 32 },
                     { 0, 0 },
@@ -282,7 +281,7 @@ int main() {
             EndDrawing();
         }
     }
-    UnloadTexture(text);
+    UnloadTexture(tile_atlas);
     UnloadRenderTexture(tilemapTexture);
     CloseWindow();
 }
