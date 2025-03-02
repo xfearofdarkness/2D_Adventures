@@ -77,4 +77,7 @@ void Level::SetTileAt(int x, int y, TileType type) {
     needsRefreshing = true;
 }
 
+void Level::reload() {
+    m_tilemap = loadTilemap("res/TestMap.csv");
+}
 

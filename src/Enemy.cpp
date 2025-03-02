@@ -13,31 +13,33 @@ Enemy::Enemy(Vector2 pos, std::vector<std::vector<TileType>>& tileMap) : pos(pos
 
 }
 
+void Enemy::setState(EnemyState state) {
+    m_state = state;
+}
+
 void Enemy::update(const Vector2 &playerPosition, float deltaTime) {
     Vector2 directionVector{};
-    // Timer runterzählen
     m_stateTimer -= deltaTime;
 
-    // Falls der Timer abgelaufen ist, neuen Zustand setzen
     if (m_stateTimer <= 0.0f) {
         if (m_state == EnemyState::WANDERING) {
             m_state = EnemyState::CHASING;
-            m_stateTimer = static_cast<float>(GetRandomValue(2, 5)); // 2 bis 5 Sekunden verfolgen
+            m_stateTimer = static_cast<float>(GetRandomValue(2, 5));
         } else {
             m_state = EnemyState::WANDERING;
             directionVector = {
                 static_cast<float>(GetRandomValue(-1, 1)),
                 static_cast<float>(GetRandomValue(-1, 1))
             };
-            m_stateTimer = static_cast<float>(GetRandomValue(1, 8)); // 1 bis 3 Sekunden ziellos laufen
+            m_stateTimer = static_cast<float>(GetRandomValue(1, 8));
         }
     }
 
-    // Verhalten je nach Zustand
+
     if (m_state == EnemyState::WANDERING) {
 
 
-        // Normalisieren falls nicht (0,0)
+
         if (directionVector.x != 0 || directionVector.y != 0) {
             Vector2Normalize(directionVector);
         }
@@ -153,7 +155,9 @@ void Enemy::moveWithCollision(Vector2 moveVec) {
     }
 }
 
-void Enemy::attack(const Player &player) {
+void Enemy::attack(Player &player, int damage) {
+    if (m_state == EnemyState::WANDERING) return;
+    player.takeDamage(damage);
 }
 
 void Enemy::takeDamage(int damage) {

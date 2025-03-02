@@ -20,6 +20,8 @@ class Enemy {
 public:
     Enemy(Vector2 position, std::vector<std::vector<TileType>>& tilemap);
 
+    void setState(EnemyState state);
+
     int direction = 0; // 0 = down, 1 = up, 2 = left, 3 = right
     int animationIndex = 0;
     float animationTimer = 0.0f;
@@ -40,7 +42,7 @@ public:
     bool checkCollision(Vector2 testPos);
     void takeDamage(int damage);
     void moveWithCollision(Vector2 moveVec);
-    void attack(const Player &player);
+    void attack(Player &player, int damage);
 
     bool isAlive = true;
 

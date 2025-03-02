@@ -48,13 +48,15 @@ add_executable(${PROJECT_NAME}
         src/Player.h
         src/Enemy.cpp
         src/Enemy.h
-        src/Assert.h
         src/Level.cpp
         src/Level.h
         src/Tile.h
         src/raygui.h
         src/Inventory.cpp
         src/Inventory.h
+        src/Stringify.h
+        src/Crafting.cpp
+        src/Crafting.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})

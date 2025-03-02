@@ -6,6 +6,7 @@
 #define INVENTORY_H
 #include <functional>
 #include <raylib.h>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -15,21 +16,8 @@ enum class ItemType {
     STONE,
     CHEST,
     CRAFTING_BENCH,
-    SWORD
-};
-
-struct CraftingRecipe {
-    ItemType outputType;
-    int outputQuantity;
-    std::vector<std::pair<ItemType, int>> ingredients;
-
-    CraftingRecipe(const ItemType output, const int quantity, std::vector<std::pair<ItemType, int>> ing)
-        : outputType(output), outputQuantity(quantity), ingredients(std::move(ing)) {}
-};
-
-inline std::vector<CraftingRecipe> recipes = {
-    {ItemType::CRAFTING_BENCH, 1, {{ItemType::WOOD, 4}}},   // 4 Wood → 1 Crafting Bench
-    {ItemType::CHEST, 1, {{ItemType::WOOD, 8}, {ItemType::STONE, 2}}} // 8 Wood + 2 Stone → 1 Chest
+    SWORD,
+    APPLE
 };
 
 struct Item {
@@ -38,8 +26,8 @@ struct Item {
     Texture2D icon;
 
 
-    std::function<void()> onUse;
-
+    std:: function<void()> onUse;
+    Item() = default;
     // Constructor to initialize normal items
     Item(const ItemType type, const int quantity, const Texture2D &icon)
         : type(type), quantity(quantity), icon(icon), onUse(nullptr) {}
@@ -62,7 +50,16 @@ public:
     void addItem(const Item& item);
     void removeItem(ItemType type, int amount);
 
-    [[nodiscard]] const std::vector<Item>& getItems() const { return m_items; }
+    bool hasItem(ItemType type, int requiredQuantity) const;
+
+    void printInventory() const;
+
+    void render(Item *selected);
+
+    [[nodiscard]] std::vector<Item> &getItems() { return m_items; }
+
+    void reset();
+
 public:
 
 private:

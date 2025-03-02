@@ -8,11 +8,14 @@
 #include <vector>
 
 
+#include "Crafting.h"
 #include "raylib.h"
 #include "Tile.h"
 #include "Enemy.h"
 #include "Inventory.h"
 #include "Level.h"
+#include "Stringify.h"
+
 class Enemy;
 
 enum class PlayerState {
@@ -25,7 +28,13 @@ class Player {
     public:
     Player(Vector2 pos, Level &level);
     ~Player();
+
+    void renderHUD();
+
+    void handleSelection();
+
     Vector2 pos;
+    Vector2 startPos = {360, 320};
     int direction = 0; // 0 = down, 1 = up, 2 = left, 3 = right
     int animationIndex = 0; // Animation frame index
     float animationTimer = 0.0f; // Tracks time for animation updates
@@ -39,9 +48,15 @@ class Player {
     }
 
     void update(float deltaTime, std::vector<Enemy>& enemies);
+
+    void initInventory();
+
     void takeDamage(int damage);
     void attack(std::vector<Enemy>& enemies, float delta_time);
-    void renderAttack();
+    void renderInventory();
+    void loadItemTextures();
+    void reset();
+
     Rectangle attackBoxRec;
     PlayerState state;
 private:
@@ -54,14 +69,34 @@ private:
     void openChest();
     void openCraftingBench();
 
+    void selectItem(int index);
+
+
 private:
-    
+    // Textures for items (private)
+    Texture2D craftingBenchTexture;
+    Texture2D chestTexture;
+    Texture2D swordTexture;
+    Texture2D stoneTexture;
+    Texture2D filledHeart;
+    Texture2D emptyHeart;
+    Crafting craftingEntity;
+    // Inventory items
+    Item craftingBench;
+    Item chest;
+    //other members
+
     Level &m_level;
     int m_health = 8;
+    int m_maxHealth = 8;
     bool m_isAlive = true;
     float m_stamina_timer = 8.0f;
     Inventory m_inventory;
     Item *m_selectedItem;
+    bool craftingUI = false;
+    bool chestUI = false;
+
+
 };
 
 

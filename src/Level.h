@@ -27,6 +27,9 @@ public:
     }
 
     void SetTileAt(int x, int y, TileType type);
+
+    void reload();
+
     bool needsRefreshing = false;
 private:
     std::vector<std::vector<TileType>> m_tilemap;
