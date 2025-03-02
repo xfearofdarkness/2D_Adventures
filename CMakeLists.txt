@@ -11,8 +11,6 @@ set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
 file(GLOB RESOURCES_FILES "${RESOURCE_DIR}/*")
 
 if(WIN32)
-    
-    
     if(MSVC)
         message(STATUS "Configuring MSVC build")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MD")
@@ -55,6 +53,8 @@ add_executable(${PROJECT_NAME}
         src/Level.h
         src/Tile.h
         src/raygui.h
+        src/Inventory.cpp
+        src/Inventory.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})

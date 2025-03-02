@@ -26,7 +26,7 @@ public:
     float stepCount = 0.0f;
     Vector2 pos;
     Rectangle srcRect = { 0, 32, 32, 32 };
-    int lives = 1;
+    int lives = 8;
 
 
     [[nodiscard]] Rectangle getBoundingBox() const {

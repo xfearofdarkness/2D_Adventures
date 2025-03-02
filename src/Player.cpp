@@ -3,9 +3,8 @@
 #include <iostream>
 
 Player::Player(Vector2 pos, Level &level)
-    : pos(pos), m_level(level), attackBoxRec({ 0,0,0,0 }) {
+    : pos(pos), m_level(level), m_selectedItem(nullptr), attackBoxRec({0, 0, 0, 0}) {
     state = PlayerState::IDLE;
-   
 }
 
 Player::~Player() {}
@@ -189,10 +188,6 @@ void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
     }
 
     attackBoxRec = attackBox;
-}
-
-void Player::renderAttack() {
-    
 }
 
 

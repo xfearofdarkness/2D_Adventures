@@ -11,6 +11,7 @@
 #include "raylib.h"
 #include "Tile.h"
 #include "Enemy.h"
+#include "Inventory.h"
 #include "Level.h"
 class Enemy;
 
@@ -50,12 +51,17 @@ private:
 
     bool checkCollision(Vector2 testPos);
 
+    void openChest();
+    void openCraftingBench();
+
 private:
     
     Level &m_level;
     int m_health = 8;
     bool m_isAlive = true;
     float m_stamina_timer = 8.0f;
+    Inventory m_inventory;
+    Item *m_selectedItem;
 };
 
 
