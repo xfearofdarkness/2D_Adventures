@@ -8,12 +8,14 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "Level.h"
+#include "raymath.h"
 
 enum class GameState {
     MENU,
     HELP,
     GAMING,
-    GAMEOVER
+    GAMEOVER,
+    PAUSED
 };
 
 
@@ -22,17 +24,17 @@ bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
     return e1.pos.y < e2.pos.y;
 }
 
-void SpawnEnemies(std::vector<std::vector<TileType>> &tileMap, const Level &level, std::vector<Enemy> &enemies, int amount) {
+void SpawnEnemies(std::vector<std::vector<TileType>> &tileMap, const Level &level, std::vector<Enemy> &enemies, int amount, Vector2 playerPos) {
     for (int i = 0; i < amount; i++) {
         bool spawned = false;
         for (int attempts = 0; attempts < amount*3; attempts++) {
             int tileX = GetRandomValue(0, 32 - 1);
             int tileY = GetRandomValue(0, 32 - 1);
+            float dist = Vector2Distance({static_cast<float>(tileX*32), static_cast<float>(tileY*32)}, playerPos);
+            if (!isSolid(level.getTileAt(tileX*32, tileY*32)) && dist > 300) {
 
-            if (!isSolid(level.getTileAt(tileX*32, tileY*32))) {
-
-                float x = tileX * 32.0f;
-                float y = tileY * 32.0f;
+                float x = static_cast<float>(tileX) * 32.0f;
+                float y = static_cast<float>(tileY) * 32.0f;
 
                 enemies.push_back(Enemy({x, y}, tileMap));
                 spawned = true;
@@ -60,8 +62,8 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
             TileType tile = tilemap[y][x];
 
             Vector2 pos = {
-                roundf(static_cast<float>(x * 32)),
-                roundf(static_cast<float>(y * 32))
+                static_cast<float>(x * 32),
+                static_cast<float>(y * 32)
             };
 
 
@@ -97,9 +99,9 @@ int main() {
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
     InitWindow(1280,720, "2D Adventures Alpha");
     Texture2D gameIcon = LoadTexture("res/Icon.png");
-    Texture2D tile_atlas = LoadTexture("res/icons.png");
-    SetTextureFilter(tile_atlas, TEXTURE_FILTER_POINT);
-    if (tile_atlas.id == 0) {
+    Texture2D tileAtlas = LoadTexture("res/icons.png");
+    SetTextureFilter(tileAtlas, TEXTURE_FILTER_POINT);
+    if (tileAtlas.id == 0) {
         std::cout << "Failed to load texture" << std::endl;
         return 1;
     }
@@ -110,14 +112,14 @@ int main() {
     std::vector<Enemy> enemies;
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
-
+    Player player({360, 320}, level);
     int spawnAmount = 10;
     enemies.reserve(spawnAmount);
-    SpawnEnemies(tileMap, level, enemies, spawnAmount);
+    SpawnEnemies(tileMap, level, enemies, spawnAmount,player.pos);
     Camera2D camera = { 0 };
-    RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, tile_atlas, level, 32, 32);
-    SetTextureWrap(tile_atlas, TEXTURE_WRAP_CLAMP);
-    Player player({360, 320}, level);
+    RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, tileAtlas, level, 32, 32);
+    SetTextureWrap(tileAtlas, TEXTURE_WRAP_CLAMP);
+
     player.initInventory();
 
 
@@ -128,19 +130,19 @@ int main() {
         }
         if (state == GameState::MENU) {
             guiFont.baseSize = 5;
-            if (int start = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-100, 200, 40 }, "Start Game")) {
+            if (int start = GuiButton({ static_cast<float>(GetScreenWidth())/2.0f-100, static_cast<float>(GetScreenHeight())/2-100, 200, 40 }, "Start Game")) {
                 state = GameState::GAMING;
             }
-            if (int quit = GuiButton({static_cast<float>(GetScreenWidth()/2-100),static_cast<float>(GetScreenHeight()/2)-50,200,40}, "Quit Game")) {
+            if (int quit = GuiButton({static_cast<float>(GetScreenWidth())/2-100,static_cast<float>(GetScreenHeight())/2-50,200,40}, "Quit Game")) {
                 break;
             }
-            if (int help = GuiButton({static_cast<float>(GetScreenWidth()/2-100),static_cast<float>(GetScreenHeight()/2),200,40}, "Help and Controls")) {
+            if (int help = GuiButton({static_cast<float>(GetScreenWidth())/2-100,static_cast<float>(GetScreenHeight())/2,200,40}, "Help and Controls")) {
                 state = GameState::HELP;
             }
             BeginDrawing();
             ClearBackground(LIGHTGRAY);
             //DrawTextureEx(gameIcon, {0,0}, 0, 3, WHITE);
-            DrawText("MAIN MENU", static_cast<float>(GetScreenWidth()/2-150), static_cast<float>(GetScreenHeight()/2-200), 50, BLACK);
+            DrawText("MAIN MENU", (GetScreenWidth()/2-150), (GetScreenHeight()/2-200), 50, BLACK);
             EndDrawing();
         }
 
@@ -176,7 +178,7 @@ int main() {
         if (state == GameState::GAMEOVER) {
             guiFont.baseSize = 8;
             if (int retry = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-100, 200, 40 }, "Retry")) {
-                ResetGame(player, tileMap, enemies, level, tilemapTexture, tile_atlas, state);
+                ResetGame(player, tileMap, enemies, level, tilemapTexture, tileAtlas, state);
             }
 
             if (int quit = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-40, 200, 40 }, "Quit")) {
@@ -190,44 +192,46 @@ int main() {
             EndDrawing();
         }
 
-        if (state == GameState::GAMING) {
+        if (state == GameState::GAMING || state == GameState::PAUSED) {
             // Update logic
             player.update(deltaTime, enemies);
+            if (state != GameState::PAUSED && !player.getPaused()) {
+                if (level.needsRefreshing) {
+                    UnloadRenderTexture(tilemapTexture);
+                    tilemapTexture = CreateBackgroundRenderTexture(level.GetTileMap(), tileAtlas, level, 32, 32);
+                }
 
-            if (level.needsRefreshing) {
-                UnloadRenderTexture(tilemapTexture);
-                tilemapTexture = CreateBackgroundRenderTexture(level.GetTileMap(), tile_atlas, level, 32, 32);
-            }
 
-
-            //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
-            if (!enemies.empty()) {
-                std::ranges::sort(enemies, SortEntityByYPos);
-            }
-            if (!enemies.empty()) {
-                for (auto& e : enemies) { //use reference to not copy the whole thing
-                    if (!e.checkCollisionWithPlayer(player.getBoundingBox())) {
-                        e.update(player.pos, deltaTime);
-                    } else {
-                        e.attack(player, 1);
-                        e.setState(EnemyState::WANDERING);
+                //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
+                if (!enemies.empty()) {
+                    std::ranges::sort(enemies, SortEntityByYPos);
+                }
+                if (!enemies.empty()) {
+                    for (auto& e : enemies) { //use reference to not copy the whole thing
+                        if (!e.checkCollisionWithPlayer(player.getBoundingBox())) {
+                            e.update(player.pos, deltaTime);
+                        } else {
+                            e.attack(player, 1);
+                            e.setState(EnemyState::WANDERING);
+                        }
                     }
                 }
-            }
-            std::erase_if(enemies, [enemies](auto& e) {
-                return !e.isAlive && !enemies.empty();
-            });
+                std::erase_if(enemies, [enemies](auto& e) {
+                    return !e.isAlive && !enemies.empty();
+                });
 
-            if (enemies.empty()) {
-                SpawnEnemies(tileMap, level, enemies, spawnAmount);
-            } else if (static_cast<int>(enemies.size()) <= spawnAmount / 2) {
-                SpawnEnemies(tileMap, level, enemies, std::clamp(spawnAmount-static_cast<int>(enemies.size()), 1, 10));
+                if (enemies.empty()) {
+                    SpawnEnemies(tileMap, level, enemies, spawnAmount, player.pos);
+                } else if (static_cast<int>(enemies.size()) <= spawnAmount / 2) {
+                    SpawnEnemies(tileMap, level, enemies, std::clamp(spawnAmount-static_cast<int>(enemies.size()), 1, 10), player.pos);
+                }
+
+                camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
+                camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
+                camera.rotation = 0.0f;
+                camera.zoom = 3.0f;
             }
 
-            camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
-            camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
-            camera.rotation = 0.0f;
-            camera.zoom = 3.0f;
 
 
             BeginDrawing();
@@ -246,22 +250,21 @@ int main() {
 
             // Draw player
             DrawTexturePro(
-                tile_atlas,
+                tileAtlas,
                 { player.srcRect.x + player.animationIndex * 32, player.srcRect.y + player.direction * 32, 32, 32 },
                 { player.pos.x, player.pos.y,32, 32 },
                 { 0, 0 },
                 0,
                 WHITE
             );
-            if (player.state == PlayerState::ATTACKING) DrawRectangleLines((int)player.attackBoxRec.x, (int)player.attackBoxRec.y, (int)player.attackBoxRec.width, (int)player.attackBoxRec.height, YELLOW);
-            if (player.state == PlayerState::ATTACKING) DrawTexturePro(tile_atlas, { player.attackSrcRect.x + player.direction * 32 , player.attackSrcRect.y, 32, 32}, player.attackBoxRec, { 0,0 }, 0, WHITE);
+            player.renderAttack(tileAtlas);
             DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
 
             if (!enemies.empty()) {
                 // Draw enemy
                 for (auto & enemy : enemies) {
                     DrawTexturePro(
-                    tile_atlas,
+                    tileAtlas,
                     { enemy.srcRect.x + enemy.animationIndex * 32, enemy.srcRect.y + enemy.direction * 32, 32, 32 },
                     { enemy.pos.x, enemy.pos.y, 32, 32 },
                     { 0, 0 },
@@ -281,7 +284,7 @@ int main() {
             EndDrawing();
         }
     }
-    UnloadTexture(tile_atlas);
+    UnloadTexture(tileAtlas);
     UnloadRenderTexture(tilemapTexture);
     CloseWindow();
 }

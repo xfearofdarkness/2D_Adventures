@@ -86,6 +86,6 @@ Texture2D Crafting::getTextureForItem(ItemType type) {
         case ItemType::SWORD:
             return LoadTexture("res/Sword.png");
         default:
-            return LoadTexture("res/Default.png");
+            return LoadTexture("res/MissingTexture.png");
     }
 }

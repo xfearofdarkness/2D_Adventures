@@ -18,6 +18,8 @@ class Player;
 
 class Enemy {
 public:
+    virtual ~Enemy() = default;
+
     Enemy(Vector2 position, std::vector<std::vector<TileType>>& tilemap);
 
     void setState(EnemyState state);
@@ -28,10 +30,10 @@ public:
     float stepCount = 0.0f;
     Vector2 pos;
     Rectangle srcRect = { 0, 32, 32, 32 };
-    int lives = 8;
+    int lives = 3;
 
 
-    [[nodiscard]] Rectangle getBoundingBox() const {
+    [[nodiscard]] virtual Rectangle getBoundingBox() const {
         return { pos.x+4, pos.y+2, 24, 28 };  // Define the enemy's collision box
     }
     void update(const Vector2& playerPosition, float deltaTime);

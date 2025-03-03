@@ -11,11 +11,13 @@ enum class TileType {
     Sand,
     Rock,
     Tree,
-    Barrier
+    Stone,
+    Dirt,
+    Barrier,
 };
 
 [[nodiscard]] inline bool isSolid(TileType type) {
-        return type == TileType::Tree || type == TileType::Water || type == TileType::Barrier;
+        return type == TileType::Tree || type == TileType::Water || type == TileType::Barrier || type == TileType::Stone;
     };
 
 

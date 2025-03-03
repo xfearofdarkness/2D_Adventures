@@ -8,6 +8,7 @@
 #include <vector>
 
 
+#include "ChestUI.h"
 #include "Crafting.h"
 #include "raylib.h"
 #include "Tile.h"
@@ -32,6 +33,9 @@ class Player {
     void renderHUD();
 
     void handleSelection();
+    [[nodiscard]] bool getPaused() const {
+        return showChestUI || craftingUI;
+    }
 
     Vector2 pos;
     Vector2 startPos = {360, 320};
@@ -53,12 +57,20 @@ class Player {
 
     void takeDamage(int damage);
     void attack(std::vector<Enemy>& enemies, float delta_time);
+
+    void handleWorldInteraction(TileType tile, Vector2 worldPos);
+
     void renderInventory();
     void loadItemTextures();
     void reset();
 
     Rectangle attackBoxRec;
     PlayerState state;
+    bool processMovement = true;
+
+
+    void renderAttack(Texture2D &tileAtlas) const;
+
 private:
     void move(float deltaTime);
 
@@ -67,10 +79,10 @@ private:
     bool checkCollision(Vector2 testPos);
 
     void openChest();
+
     void openCraftingBench();
 
     void selectItem(int index);
-
 
 private:
     // Textures for items (private)
@@ -80,23 +92,31 @@ private:
     Texture2D stoneTexture;
     Texture2D filledHeart;
     Texture2D emptyHeart;
+    Texture2D emptyLightning;
+    Texture2D filledLightning;
     Crafting craftingEntity;
     // Inventory items
     Item craftingBench;
     Item chest;
     //other members
-
+    std::unique_ptr<ChestUI> chestUI;
     Level &m_level;
     int m_health = 8;
-    int m_maxHealth = 8;
+    const int m_maxHealth = 8;
     bool m_isAlive = true;
-    float m_stamina_timer = 8.0f;
+    float m_stamina = 8.0f;               // Current stamina (max 8)
+    const float m_maxStamina = 8.0f;        // Maximum stamina
+    const float m_staminaCost = 1.0f;       // Each attack costs 1 stamina
+    const float m_staminaRegenRate = 1.0f;  // Regenerate 1 stamina per second
+    float m_attackCooldownTimer = 0.0f;     // Timer to enforce attack cooldown
+    const float m_attackCooldown = 0.7f;
+    float m_attackAnimationTimer = 0.0f;         // Time remaining for attack animation
+    const float m_attackAnimationDuration = 0.1f;
     Inventory m_inventory;
     Item *m_selectedItem;
     bool craftingUI = false;
-    bool chestUI = false;
-
-
+    bool showChestUI = false;
+    Inventory m_chestInventory;
 };
 
 

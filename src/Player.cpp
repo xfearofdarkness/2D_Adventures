@@ -17,17 +17,19 @@ Player::~Player() {
     UnloadTexture(stoneTexture);
     UnloadTexture(filledHeart);
     UnloadTexture(emptyHeart);
+    UnloadTexture(emptyLightning);
+    UnloadTexture(filledLightning);
 }
 
 void Player::renderHUD() {
     if (craftingUI) {
-        craftingEntity.renderCraftingUI(m_inventory, {100,100});
+        Crafting::renderCraftingUI(m_inventory, {100,100});
     }
-    const int heartSize = 32;       // Size of the heart textures
+    const int iconSize = 32;
     const int spacing = 4;          // Spacing between hearts
 
     for (int i = 0; i < m_maxHealth; i++) {
-        float x = 0 + i * (heartSize + spacing);
+        float x = 0 + i * (iconSize + spacing);
         // Draw a filled heart if this index is less than currentHealth, else an empty heart.
         if (i < m_health) {
             DrawTexture(filledHeart, x, 0, WHITE);
@@ -35,19 +37,36 @@ void Player::renderHUD() {
             DrawTexture(emptyHeart, x, 0, WHITE);
         }
     }
+
+    for (int i = 0; i < static_cast<int>(m_maxStamina) ; i++) {
+        float x = 0 + i * (iconSize + spacing);
+
+        if (i < m_stamina && m_stamina > i+1) {
+            DrawTexture(filledLightning, x, iconSize+spacing, WHITE);
+        } else {
+            DrawTexture(emptyLightning, x, iconSize+spacing, WHITE);
+        }
+    }
+
+    if (showChestUI) {
+        chestUI->render();
+    }
 }
 
 void Player::handleSelection() {
-    if (craftingUI) return;
-    if (IsKeyPressed(KEY_ONE)) {
-        selectItem(0);
+
+    if (!getPaused()) {
+        if (IsKeyPressed(KEY_ONE)) {
+            selectItem(0);
+        }
+        if (IsKeyPressed(KEY_TWO)) {
+            selectItem(1);
+        }
+        if (IsKeyPressed(KEY_THREE)) {
+            selectItem(2);
+        }
     }
-    if (IsKeyPressed(KEY_TWO)) {
-        selectItem(1);
-    }
-    if (IsKeyPressed(KEY_THREE)) {
-        selectItem(2);
-    }
+
 
     if (IsKeyPressed(KEY_E) && m_selectedItem) {
         m_selectedItem->use();
@@ -62,9 +81,29 @@ void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
     if (state == PlayerState::DEAD) {
         return;
     }
-    move(deltaTime);
-    attack(enemies, deltaTime);
+
+    if (processMovement) {
+        move(deltaTime);
+        attack(enemies, deltaTime);
+    }
+
     handleSelection();
+
+    if (m_attackAnimationTimer > 0.0f) {
+        m_attackAnimationTimer -= deltaTime;
+        // Optionally, keep state as ATTACKING while timer is positive.
+        if (m_attackAnimationTimer <= 0.0f && state == PlayerState::ATTACKING) {
+            state = PlayerState::IDLE;
+        }
+    }
+
+    // Regenerate stamina continuously.
+    m_stamina += m_staminaRegenRate * deltaTime;
+    if (m_stamina > m_maxStamina) {
+        m_stamina = m_maxStamina;
+    }
+
+    if (showChestUI) chestUI->update(deltaTime);
 
 }
 void Player::initInventory() {
@@ -74,6 +113,7 @@ void Player::initInventory() {
     assert(craftingBench.icon.id);
     m_inventory.addItem(craftingBench);
     m_inventory.addItem(chest);
+    chestUI = std::make_unique<ChestUI>(m_chestInventory, m_inventory);
 }
 void Player::takeDamage(int damage) {
     m_health -= damage;
@@ -85,6 +125,9 @@ void Player::takeDamage(int damage) {
 }
 
 void Player::move(float deltaTime) {
+    if (craftingUI || showChestUI) {
+        return;
+    }
     bool up = IsKeyDown(KEY_UP) || IsKeyDown(KEY_W);
     bool down = IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S);
     bool left = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A);
@@ -198,57 +241,74 @@ bool Player::checkCollision(Vector2 testPos) {
 }
 
 void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
-    
-    bool attacking = IsKeyDown(KEY_C) || IsKeyDown(KEY_RIGHT_CONTROL) || IsKeyDown(KEY_LEFT_CONTROL);
-    if (attacking) m_stamina_timer -= 1.0f;
-    if (m_stamina_timer < 8.0f && !attacking) {
-        m_stamina_timer += 1.0f;
-    }
-    if (!attacking) {
+    // Use discrete input so each press counts only once.
+    bool attackPressed = IsKeyPressed(KEY_C) || IsKeyPressed(KEY_RIGHT_CONTROL) || IsKeyPressed(KEY_LEFT_CONTROL);
+
+    // If not pressed or if we don't have at least 1 stamina, do nothing.
+    if (!attackPressed || m_stamina < 1.0f) {
         state = PlayerState::IDLE;
         return;
     }
-    
-    state = PlayerState::ATTACKING;
-    Rectangle attackBox;
 
+    // Attack occurs: subtract a fixed cost of 1 stamina.
+    m_stamina -= 1.0f;
+    state = PlayerState::ATTACKING;
+
+    // Define the attack box based on the player's direction.
+    Rectangle attackBox;
     switch (direction) {
         case 0: // Down
             attackBox = { pos.x, pos.y + 16, 32, 32 };
-        break;
+            break;
         case 1: // Up
             attackBox = { pos.x, pos.y - 16, 32, 32 };
-        break;
+            break;
         case 2: // Left
             attackBox = { pos.x - 16, pos.y + 2, 32, 32 };
-        break;
+            break;
         case 3: // Right
             attackBox = { pos.x + 16, pos.y + 2, 32, 32 };
-        break;
+            break;
         default:
             attackBox = {};
+            break;
     }
-    //A little inefficient, oops
+
+    // Damage enemies that collide with the attack box.
     for (Enemy& e : enemies) {
         if (e.isAlive && CheckCollisionRecs(attackBox, e.getBoundingBox())) {
             e.takeDamage(1);
         }
     }
+
+    // Determine which tile is being attacked using the center of the attack box.
     int tileX = static_cast<int>((attackBox.x + attackBox.width / 2) / 32);
     int tileY = static_cast<int>((attackBox.y + attackBox.height / 2) / 32);
 
-    // Instead of assuming the entire 32x32 tile is the hit area,
-    // assume only the lower half (the trunk of a tree) is vulnerable.
-    Rectangle treeCollisionRect = { tileX * 32.0f, tileY * 32.0f + 16.0f, 32.0f, 16.0f };
+    // Delegate world interaction (e.g. chopping trees) to your handler.
+    handleWorldInteraction(m_level.getTileAt(tileX * 32, tileY * 32),
+                           { static_cast<float>(tileX * 32), static_cast<float>(tileY * 32) });
 
-    // Check if the tile is a tree and if the attack box overlaps the tree's "hit" region.
-    if (m_level.getTileAt(tileX * 32, tileY * 32) == TileType::Tree &&
-        CheckCollisionRecs(attackBox, treeCollisionRect)) {
-        m_level.SetTileAt(tileX * 32, tileY * 32, TileType::Grass);
-        std::cout << "Tree chopped! Changed to Grass at: " << tileX << ", " << tileY << std::endl;
-    }
-
+    // Store the attack box (e.g. for rendering the attack sprite).
     attackBoxRec = attackBox;
+}
+
+
+void Player::handleWorldInteraction(TileType tile, Vector2 worldPos) {
+    switch (tile) {
+        case TileType::Tree:
+            m_level.SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Grass);
+            //m_stamina--;
+            //std::cout << "bruh you outa breath: " << m_stamina << std::endl;
+            break;
+        case TileType::Stone:
+            m_level.SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Dirt);
+            //m_stamina--;
+            //std::cout << "bruh you outa breath: " << m_stamina << std::endl;
+            break;
+        default:
+            break;
+    }
 }
 
 void Player::renderInventory() {
@@ -262,10 +322,12 @@ void Player::loadItemTextures() {
     stoneTexture = LoadTexture("res/Stone.png");
     filledHeart = LoadTexture("res/FilledHeart.png");
     emptyHeart = LoadTexture("res/EmptyHeart.png");
+    emptyLightning = LoadTexture("res/EmptyLightning.png");
+    filledLightning = LoadTexture("res/FilledLightning.png");
 }
 
 void Player::openChest() {
-    std::cout <<  "Chest opened!\n";
+    showChestUI = !showChestUI;
 }
 
 void Player::openCraftingBench() {
@@ -281,18 +343,26 @@ void Player::selectItem(int index) {
         std::cout << "No item selected.\n" << std::endl;
     }
 }
-
+void Player::renderAttack(Texture2D &tileAtlas) const {
+    if (state == PlayerState::ATTACKING || m_attackAnimationTimer > 0.0f)
+        DrawRectangleLines((int)attackBoxRec.x, (int)attackBoxRec.y, (int)attackBoxRec.width, (int)attackBoxRec.height, YELLOW);
+    if (state == PlayerState::ATTACKING || m_attackAnimationTimer > 0.0f)
+        DrawTexturePro(tileAtlas, { attackSrcRect.x + static_cast<float>(direction * 32) , attackSrcRect.y, 32, 32}, attackBoxRec, { 0,0 }, 0, WHITE);
+}
 void Player::reset() {
     pos = startPos;
     direction = 0;
     m_health = 8;
     m_isAlive = true;
-    m_stamina_timer = 8.0f;
+    m_attackCooldownTimer = 0.0f;
+    m_stamina = 8.0f;
     m_inventory.reset();
     m_selectedItem = nullptr;
     craftingUI = false;
-    chestUI = false;
+    showChestUI = false;
     state = PlayerState::IDLE;
+    chestUI = nullptr;
+    processMovement = true;
 }
 
 

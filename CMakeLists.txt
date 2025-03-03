@@ -57,6 +57,10 @@ add_executable(${PROJECT_NAME}
         src/Stringify.h
         src/Crafting.cpp
         src/Crafting.h
+        src/Slime.cpp
+        src/Slime.h
+        src/ChestUI.cpp
+        src/ChestUI.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
