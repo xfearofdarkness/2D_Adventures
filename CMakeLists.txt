@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.00)
-project(Into_the_Unknown)
+project(2D_Adventures)
 
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 # Use C++20 standard
 set(CMAKE_CXX_STANDARD 20)
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
@@ -63,6 +62,7 @@ add_executable(${PROJECT_NAME}
         src/EndBoss.cpp
         src/EndBoss.h
         src/DroppedItem.h
+        src/Functional.h
         src/Functional.h
 )
 

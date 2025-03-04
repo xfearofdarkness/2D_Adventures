@@ -11,6 +11,7 @@
 #include "ChestUI.h"
 #include "Crafting.h"
 #include "DroppedItem.h"
+#include "EndBoss.h"
 #include "raylib.h"
 #include "Tile.h"
 #include "Enemy.h"
@@ -52,7 +53,7 @@ class Player {
         return { pos.x+4, pos.y+2, 24, 28 }; // Define the player's collision box
     }
 
-    void update(float deltaTime, std::vector<Enemy> &enemies, std::vector<Slime> &slimes);
+    void update(float deltaTime, std::vector<Enemy> &enemies, std::vector<Slime> &slimes, EndBoss &boss);
 
     void initInventory();
 
@@ -62,13 +63,13 @@ class Player {
 
     void useSelectedItem();
 
-    void attack(std::vector<Enemy>& enemies, std::vector<Slime>& slimes, float delta_time);
+    void attack(std::vector<Enemy> &enemies, std::vector<Slime> &slimes, EndBoss &boss, float delta_time);
 
     void handleWorldInteraction(TileType tile, Vector2 worldPos);
 
     void renderInventory();
     void loadItemTextures();
-    void reset();
+    void reset(bool keepInv);
 
     Rectangle attackBoxRec;
     PlayerState state;
@@ -76,6 +77,8 @@ class Player {
 
 
     void renderAttack(Texture2D &tileAtlas);
+
+    bool checkLevelTransition();
 
 private:
     void move(float deltaTime);

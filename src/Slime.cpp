@@ -6,6 +6,7 @@
 
 #include <iostream>
 
+#include "Player.h"
 #include "raylib.h"
 #include "raymath.h"
 
@@ -18,8 +19,7 @@ Slime::Slime(Vector2 pos, Level &level)
     animationIndex = 0;
 }
 
-void Slime::update(const Vector2 &playerPosition, float deltaTime) {
-    if (lives < 3) std::cout << "good";
+void Slime::update(Player &player, float deltaTime) {
     // Update custom animation timer.
     m_animationTimer += deltaTime;
     if (m_animationTimer >= m_animationSpeed) {
@@ -58,11 +58,11 @@ void Slime::update(const Vector2 &playerPosition, float deltaTime) {
 
         moveWithCollision(moveVec);
     } else {
-        moveTowardPlayer(playerPosition, deltaTime);
+        moveTowardPlayer(player.pos, deltaTime);
     }
     // Use base behavior for movement: for instance, chase the player.
     // (You can add custom behavior if desired.)
-    moveTowardPlayer(playerPosition, deltaTime);
+    moveTowardPlayer(player.pos, deltaTime);
 }
 
 void Slime::render(Texture2D &tileAtlas) {

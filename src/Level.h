@@ -12,9 +12,10 @@
 
 class Level {
 public:
-    Level();
+    Level(int lvl);
+
     ~Level();
-    static std::vector<std::vector<TileType>> loadTilemap(const std::string& filename);
+    std::vector<std::vector<TileType>> loadTilemap(const std::string& filename);
 
     [[nodiscard]] TileType getTileAt(int x, int y) const;
 
@@ -26,10 +27,18 @@ public:
 
     void SetTileAt(int x, int y, TileType type);
 
-    void reload();
+    void reload(int lvl);
 
     bool needsRefreshing = false;
+    int getLevel() {
+        return m_lvl;
+    }
+
+    void setLevel(int lvl) {
+        m_lvl = lvl;
+    }
 private:
+    int m_lvl;
     std::vector<std::vector<TileType>> m_tilemap;
     int tileSize = 32;
 };

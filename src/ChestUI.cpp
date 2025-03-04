@@ -25,7 +25,7 @@ ChestUI::ChestUI(Inventory &chestInv, Inventory &playerInv)
 {
     chestSelectedIndex = 0;
     playerSelectedIndex = 0;
-    // If chest is empty at startup, start with player's inventory active.
+
     if (chestInventory.getItems().empty()) {
         chestActive = false;
     }
@@ -37,12 +37,12 @@ void ChestUI::update(float deltaTime) {
     if (IsKeyDown(KEY_Q)) {
         shouldClose = true;
     }
-    // Navigation using arrow keys:
+
     int chestSlots = chestRows * columns;
     int playerSlots = playerRows * columns;
 
     if (chestActive) {
-        // Navigate within the chest grid.
+        // Navigate within the chest grid
         if (IsKeyPressed(KEY_RIGHT)) {
             chestSelectedIndex = (chestSelectedIndex + 1) % chestSlots;
         }
@@ -60,7 +60,7 @@ void ChestUI::update(float deltaTime) {
         if (IsKeyPressed(KEY_UP)) {
             chestSelectedIndex = std::max(0, chestSelectedIndex - columns);
         }
-    } else { // Player inventory active.
+    } else { // Player inventory active
         if (IsKeyPressed(KEY_RIGHT)) {
             playerSelectedIndex = (playerSelectedIndex + 1) % playerSlots;
         }
@@ -68,21 +68,19 @@ void ChestUI::update(float deltaTime) {
             playerSelectedIndex = (playerSelectedIndex - 1 + playerSlots) % playerSlots;
         }
         if (IsKeyPressed(KEY_UP)) {
-            // Move from player grid to chest grid.
-            playerSelectedIndex = 0;  // Optionally, set to a default value.
+
+            playerSelectedIndex = 0;
             chestActive = true;
         }
-        // Down key: if needed, can wrap around within player's grid.
     }
 
-    // Transfer item on Enter.
     if (IsKeyPressed(KEY_ENTER)) {
         transferItem();
     }
 }
 
 void ChestUI::transferItem() {
-    // Transfer from chest to player's inventory if the chest grid is active.
+
     if (chestActive) {
         auto &chestItems = chestInventory.getItems();
         if (chestItems.empty() || chestSelectedIndex >= static_cast<int>(chestItems.size()))
@@ -92,30 +90,30 @@ void ChestUI::transferItem() {
         Item itemToTransfer = chestItems[chestSelectedIndex];
         int transferQuantity = itemToTransfer.quantity;
 
-        // Prevent transferring a chest item or a zero-quantity item.
+
         if (itemToTransfer.type == ItemType::CHEST || transferQuantity <= 0) {
             std::cout << "Cannot transfer this item." << std::endl;
             return;
         }
 
-        // Remove the item from the chest inventory.
+
         chestInventory.removeItem(itemToTransfer.type, transferQuantity);
 
-        // Restore the original quantity in our copy.
+
         itemToTransfer.quantity = transferQuantity;
-        // Add the copied item to the player's inventory.
+
         playerInventory.addItem(itemToTransfer);
         std::cout << "Transferred " << transferQuantity << " of "
                   << toString(itemToTransfer.type) << " from chest to inventory." << std::endl;
 
-        // Adjust the chest selection index so it doesn't point to a shifted item.
+
         if (chestInventory.getItems().empty()) {
             chestSelectedIndex = 0;
         } else if (chestSelectedIndex >= static_cast<int>(chestInventory.getItems().size())) {
             chestSelectedIndex = static_cast<int>(chestInventory.getItems().size()) - 1;
         }
     }
-    // Transfer from player's inventory to chest if the player's grid is active.
+
     else {
         auto &playerItems = playerInventory.getItems();
         if (playerItems.empty() || playerSelectedIndex >= static_cast<int>(playerItems.size()))
@@ -188,7 +186,7 @@ void ChestUI::render() {
         }
     }
 
-    // Render player's inventory grid.
+
     int playerSlots = playerRows * columns;
     for (int i = 0; i < playerSlots; i++) {
         int col = i % columns;

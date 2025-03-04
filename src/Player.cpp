@@ -4,6 +4,7 @@
 #include "Crafting.h"
 #include "Assert.h"
 #include "DroppedItem.h"
+#include "EndBoss.h"
 #include "Functional.h"
 
 Player::Player(Vector2 position, Level &level, std::vector<DroppedItem>* droppedItems)
@@ -95,14 +96,14 @@ void Player::handleSelection() {
     }
 }
 
-void Player::update(float deltaTime, std::vector<Enemy>& enemies, std::vector<Slime>& slimes) {
+void Player::update(float deltaTime, std::vector<Enemy>& enemies, std::vector<Slime>& slimes, EndBoss& boss) {
     if (state == PlayerState::DEAD) {
         return;
     }
 
     if (processMovement) {
         move(deltaTime);
-        attack(enemies, slimes, deltaTime);
+        attack(enemies, slimes, boss, deltaTime);
     }
 
     handleSelection();
@@ -122,8 +123,8 @@ void Player::update(float deltaTime, std::vector<Enemy>& enemies, std::vector<Sl
     if (m_stamina > m_maxStamina) {
         m_stamina = m_maxStamina;
     }
-    if (chestUI->shouldClose) showChestUI = false;
-    if (showChestUI) chestUI->update(deltaTime);
+    if (chestUI && chestUI->shouldClose) showChestUI = false;
+    if (showChestUI && chestUI) chestUI->update(deltaTime);
 
     auto it = m_droppedItems->begin();
     while (it != m_droppedItems->end()) {
@@ -152,7 +153,6 @@ void Player::initInventory() {
     testItem = {ItemType::STONE, 20, stoneTexture};
     testItem2 = {ItemType::WOOD, 20, woodTexture};
 
-    assert(craftingBench.icon.id);
 
     m_inventory.reset();
     m_inventory.addItem(craftingBench);
@@ -315,7 +315,7 @@ bool Player::checkCollision(Vector2 testPos) {
     return false;
 }
 
-void Player::attack(std::vector<Enemy>& enemies, std::vector<Slime>& slimes, float delta_time) {
+void Player::attack(std::vector<Enemy>& enemies, std::vector<Slime>& slimes, EndBoss& boss, float delta_time) {
     // Use discrete input so each press counts only once.
     bool attackPressed = IsKeyPressed(KEY_C) || IsKeyPressed(KEY_RIGHT_CONTROL) || IsKeyPressed(KEY_LEFT_CONTROL);
 
@@ -366,7 +366,11 @@ void Player::attack(std::vector<Enemy>& enemies, std::vector<Slime>& slimes, flo
             e.takeDamage(1+itemDamage);
         }
     }
-
+    if (m_level->getLevel() == 2) {
+        if (CheckCollisionRecs(attackBox, boss.getBoundingBox())) {
+            boss.takeDamage(1+itemDamage);
+        }
+    }
     int tileX = static_cast<int>((attackBox.x + attackBox.width / 2) / 32);
     int tileY = static_cast<int>((attackBox.y + attackBox.height / 2) / 32);
 
@@ -470,26 +474,45 @@ void Player::renderAttack(Texture2D &tileAtlas)  {
     }
 }
 
-void Player::reset() {
+bool Player::checkLevelTransition() {
+    // Get the player's center.
+    Vector2 center = { pos.x + getBoundingBox().width / 2, pos.y + getBoundingBox().height / 2 };
+    int tileX = static_cast<int>(center.x) / 32;
+    int tileY = static_cast<int>(center.y) / 32;
+    TileType tile = m_level->getTileAt(tileX * 32, tileY * 32);
+
+    if (tile == TileType::LevelTransition) {
+        // Check additional offsets/margin:
+        Rectangle tileRect = { tileX * 32.0f, tileY * 32.0f, 32.0f, 32.0f };
+        float margin = 0.0f;
+        if (center.x > tileRect.x + margin && center.x < tileRect.x + tileRect.width - margin &&
+            center.y > tileRect.y + margin && center.y < tileRect.y + tileRect.height - margin) {
+            return true;
+            }
+    }
+    return false;
+}
+
+
+void Player::reset(bool keepInv) {
     pos = startPos;
     direction = 0;
     m_health = 8;
     m_isAlive = true;
     m_attackCooldownTimer = 0.0f;
     m_stamina = 8.0f;
-
-    m_inventory.reset();
     m_selectedItem = nullptr;
 
     craftingUI = false;
     showChestUI = false;
     state = PlayerState::IDLE;
-
-    // Delete previous UI instance before recreating it
-    chestUI.reset();
     m_droppedItems->clear();
     processMovement = true;
-    initInventory();
+    if (!keepInv) {
+        m_inventory.reset();
+        chestUI.reset();
+        initInventory();
+    }
 }
 
 

@@ -18,7 +18,6 @@ struct CraftingRecipe {
         : outputType(output), outputQuantity(quantity), ingredients(std::move(ing)) {}
 };
 
-// Global recipes.
 inline std::vector<CraftingRecipe> recipes = {
     {ItemType::CRAFTING_BENCH, 1, {{ItemType::WOOD, 4}}},                 // 4 Wood → 1 Crafting Bench
     {ItemType::CHEST, 1, {{ItemType::WOOD, 8}, {ItemType::STONE, 2}}},      // 8 Wood + 2 Stone → 1 Chest
@@ -27,7 +26,7 @@ inline std::vector<CraftingRecipe> recipes = {
 
 class Crafting {
 public:
-    // Checks if the inventory has all ingredients.
+
     static bool canCraftRecipe(const CraftingRecipe& recipe, const Inventory& inventory) {
         for (const auto& ingredient : recipe.ingredients) {
             if (!inventory.hasItem(ingredient.first, ingredient.second)) {
@@ -37,7 +36,7 @@ public:
         return true;
     }
 
-    // Removes ingredients and adds the crafted item to the inventory.
+
     static bool craftRecipe(const CraftingRecipe& recipe, Inventory& inventory) {
         if (!canCraftRecipe(recipe, inventory)) {
             return false;
@@ -53,8 +52,7 @@ public:
         return true;
     }
 
-    // Call this in your crafting UI update loop.
-    // It checks if keys 1-3 are pressed and crafts the corresponding recipe.
+
     static void updateCraftingUI(Inventory &inventory) {
     if (IsKeyPressed(KEY_ONE)) {
         if (recipes.size() >= 1) {
@@ -108,7 +106,6 @@ public:
     }
 }
 
-    // Renders the crafting UI. (This code might already exist in your version.)
     static void renderCraftingUI(const Inventory &inventory, Vector2 uiPosition) {
         float panelWidth = 500;
         float panelHeight = 300;
@@ -130,8 +127,6 @@ public:
     }
 
 private:
-    // Helper: Returns the texture for a given item type.
-    // In a production game, these textures should be preloaded.
     static Texture2D getTextureForItem(ItemType type) {
         switch (type) {
             case ItemType::WOOD:

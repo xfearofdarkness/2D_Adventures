@@ -16,7 +16,7 @@ void Enemy::setState(EnemyState state) {
     m_state = state;
 }
 
-void Enemy::update(const Vector2 &playerPosition, float deltaTime) {
+void Enemy::update(Player& player, float deltaTime) {
 
     Vector2 directionVector{};
     m_stateTimer -= deltaTime;
@@ -51,7 +51,9 @@ void Enemy::update(const Vector2 &playerPosition, float deltaTime) {
 
         moveWithCollision(moveVec);
     } else {
-        moveTowardPlayer(playerPosition, deltaTime);
+        if (!CheckCollisionRecs(getBoundingBox(),player.getBoundingBox())) {
+            moveTowardPlayer(player.pos, deltaTime);
+        }
     }
 }
 
@@ -60,14 +62,14 @@ void Enemy::moveTowardPlayer(const Vector2& playerPosition, float deltaTime) {
     const float distanceToPlayer = Vector2Distance(playerPosition, enemyVec);
     if (distanceToPlayer > 200.0f) return;
 
-    // Enemy speed
+
     Vector2 directionVector = { playerPosition.x - pos.x, playerPosition.y - pos.y };
 
-    //Check the current direction
+
     if (fabs(directionVector.x) > fabs(directionVector.y)) {
-        direction = (directionVector.x > 0) ? 3 : 2; // Right or Left
+        direction = (directionVector.x > 0) ? 3 : 2;
     } else {
-        direction = (directionVector.y > 0) ? 0 : 1; // Down or Up
+        direction = (directionVector.y > 0) ? 0 : 1;
     }
 
     if (const float distance = Vector2Length(directionVector); distance > 0.0f) {

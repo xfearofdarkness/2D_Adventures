@@ -6,8 +6,11 @@
 
 #include <iostream>
 
-Level::Level() {
-    m_tilemap = loadTilemap("res/TestMap.csv");
+
+
+Level::Level(int lvl): m_lvl(lvl) {
+    if (lvl==1) m_tilemap = loadTilemap("res/Level1.csv");
+    if (lvl==2) m_tilemap = loadTilemap("res/Level2.csv");
 }
 
 Level::~Level() {
@@ -37,9 +40,9 @@ std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filena
                 auto tileType = static_cast<TileType>(tileValue);  // Convert to TileType enum because otherwise it is implementation defined
                 row.push_back(tileType);
             } catch (std::invalid_argument) {
-                throw std::runtime_error("Error: Invalid value at line " + std::to_string(lineNum) + ": " + value);
+                throw std::invalid_argument("Error: Invalid value at line " + std::to_string(lineNum) + ": " + value);
             } catch (std::out_of_range) {
-                throw std::runtime_error("Error: Value out of range at line: " + std::to_string(lineNum) + ": " + value);
+                throw std::out_of_range("Error: Value out of range at line: " + std::to_string(lineNum) + ": " + value);
             }
 
         }
@@ -78,8 +81,9 @@ void Level::SetTileAt(int x, int y, TileType type) {
     needsRefreshing = true;
 }
 
-void Level::reload() {
+void Level::reload(int lvl) {
     m_tilemap.clear();  // Clear old data before loading a new tilemap
-    m_tilemap = loadTilemap("res/TestMap.csv");
+    if (lvl==1) m_tilemap = loadTilemap("res/Level1.csv");
+    if (lvl==2) m_tilemap = loadTilemap("res/Level2.csv");
 }
 

@@ -13,12 +13,15 @@
 #include "raymath.h"
 #include "Slime.h"
 
+
 enum class GameState {
     MENU,
     HELP,
     GAMING,
     GAMEOVER,
-    PAUSED
+    PAUSED,
+    NEXTLVL,
+    WON
 };
 
 
@@ -106,17 +109,21 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
     }
 
     EndTextureMode();
-    
+
     level.needsRefreshing = false;
 
     return renderTexture;
 }
 
 void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std::vector<Enemy> &enemies, std::vector<Slime> slimes,
-               Level &level, RenderTexture2D &tileMapTexture, Texture2D tileAtlas, GameState &state) {
-    player.reset();
-    level.reload();
+               Level &level, RenderTexture2D &tileMapTexture, Texture2D tileAtlas, GameState &state, bool keepInv) {
+    player.reset(keepInv);
+    if (state==GameState::GAMEOVER) level.reload(1);
 
+    if (state==GameState::NEXTLVL) {
+        level.reload(2);
+        level.setLevel(2);
+    }
     // Clear enemy list
     enemies.clear();
     slimes.clear();
@@ -132,6 +139,7 @@ void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std:
 int main() {
     std::vector<DroppedItem> droppedItems;
     auto state = GameState::MENU;
+
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
     InitWindow(1280,720, "2D Adventures Alpha");
     Texture2D gameIcon = LoadTexture("res/Icon.png");
@@ -145,15 +153,17 @@ int main() {
     std::cout << "Monitor refresh rate: " << hz << std::endl;
     SetTargetFPS(hz);
     SetExitKey(0);
+
     std::vector<Enemy> enemies;
     std::vector<Slime> slimes;
-    Level level;
+    Level level{1};
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
-    Player player({20*32, 6*32}, level, &droppedItems);
+    Player player({14*32, 3*32}, level, &droppedItems);
     EndBoss boss({15*32,30*32}, level);
+
     int spawnAmount = 10;
-    enemies.reserve(spawnAmount);
-    slimes.reserve(spawnAmount);
+    enemies.reserve(spawnAmount*2);
+    slimes.reserve(spawnAmount*2);
     SpawnEnemies(level, enemies, spawnAmount, player.pos);
     SpawnSlimes(level, slimes, spawnAmount, player.pos);
     Camera2D camera = { 0 };
@@ -163,10 +173,37 @@ int main() {
     player.initInventory();
 
 
-    ClearWindowState(FLAG_WINDOW_HIDDEN); //unhide window after initialization
+    ClearWindowState(FLAG_WINDOW_HIDDEN); //Unhide window after initialization
+
     while (!WindowShouldClose()) {
+        if (IsKeyDown(KEY_I)) {
+            state = GameState::WON;
+        }
+        if (!boss.isAlive) state = GameState::WON;
+        if (state == GameState::WON) {
+            if (int quit = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-40, 200, 40 }, "Quit")) {
+                break;
+            }
+            BeginDrawing();
+            ClearBackground(LIGHTGRAY);
+            DrawText("YOU WIN", GetScreenWidth()/2.0f-100, GetScreenHeight()/2-300, 40, GOLD);
+            DrawText("Thanks for playing", GetScreenWidth()/2.0f-200, GetScreenHeight()/2-200, 40, BLACK);
+            EndDrawing();
+        }
+
         if (GetKeyPressed() == KEY_ESCAPE) {
             state = GameState::MENU;
+        }
+
+        if (state == GameState::NEXTLVL) {
+            if (int next = GuiButton({ static_cast<float>(GetScreenWidth())/2.0f-100, static_cast<float>(GetScreenHeight())/2-100, 200, 40 }, "Continue")) {
+                ResetGame(player, tileMap, enemies, slimes, level, tilemapTexture, tileAtlas, state, true);
+                state = GameState::GAMING;
+            }
+            BeginDrawing();
+            ClearBackground(LIGHTGRAY);
+            DrawText("LEVEL COMPLETED", (GetScreenWidth()/2-250), (GetScreenHeight()/2-200), 50, BLUE);
+            EndDrawing();
         }
         if (state == GameState::MENU) {
             guiFont.baseSize = 5;
@@ -181,7 +218,6 @@ int main() {
             }
             BeginDrawing();
             ClearBackground(LIGHTGRAY);
-            //DrawTextureEx(gameIcon, {0,0}, 0, 3, WHITE);
             DrawText("MAIN MENU", (GetScreenWidth()/2-150), (GetScreenHeight()/2-200), 50, BLACK);
             EndDrawing();
         }
@@ -214,7 +250,7 @@ int main() {
         if (state == GameState::GAMEOVER) {
             guiFont.baseSize = 8;
             if (int retry = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-100, 200, 40 }, "Retry")) {
-                ResetGame(player, tileMap, enemies, slimes, level, tilemapTexture, tileAtlas, state);
+                ResetGame(player, tileMap, enemies, slimes, level, tilemapTexture, tileAtlas, state, false);
                 droppedItems.clear();
             }
 
@@ -231,7 +267,8 @@ int main() {
 
         if (state == GameState::GAMING || state == GameState::PAUSED) {
             // Update logic
-            player.update(deltaTime, enemies, slimes);
+            player.update(deltaTime, enemies, slimes, boss);
+            if (player.checkLevelTransition()) state = GameState::NEXTLVL;
             if (state != GameState::PAUSED && !player.getPaused()) {
                 if (level.needsRefreshing) {
                     UnloadRenderTexture(tilemapTexture);
@@ -246,7 +283,7 @@ int main() {
                 if (!slimes.empty()) {
                     for (auto &slime : slimes) {
                         if (!slime.checkCollisionWithPlayer(player.getBoundingBox())) {
-                            slime.update(player.pos, deltaTime);
+                            slime.update(player, deltaTime);
                         } else {
                             slime.attack(player, 1);
                             slime.setState(EnemyState::WANDERING);
@@ -256,7 +293,7 @@ int main() {
                 if (!enemies.empty()) {
                     for (auto& e : enemies) { //use reference to not copy the whole thing
                         if (!e.checkCollisionWithPlayer(player.getBoundingBox())) {
-                            e.update(player.pos, deltaTime);
+                            e.update(player, deltaTime);
                         } else {
                             e.attack(player, 1);
                             e.setState(EnemyState::WANDERING);
@@ -272,11 +309,15 @@ int main() {
 
 
                 if (enemies.empty()) {
-                    SpawnEnemies(level, enemies, spawnAmount, player.pos);
-                } else if (static_cast<int>(enemies.size()) <= spawnAmount / 2) {
-                    SpawnEnemies(level, enemies, std::clamp(spawnAmount-static_cast<int>(enemies.size()), 1, 10), player.pos);
+                    SpawnEnemies(level, enemies, spawnAmount*level.getLevel(), player.pos);
                 }
-
+                if (level.getLevel() ==2) {
+                    boss.update(player, deltaTime);
+                    if (CheckCollisionRecs(player.getBoundingBox(), boss.getBoundingBox())) {
+                        boss.attack(player, boss.getDamage());
+                        boss.setState(EnemyState::WANDERING);
+                    }
+                }
                 camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };
                 camera.offset = { static_cast<float>(GetScreenWidth()) / 2.0f, static_cast<float>(GetScreenHeight()) / 2.0f };
                 camera.rotation = 0.0f;
@@ -336,6 +377,9 @@ int main() {
                     slime.render(tileAtlas);
                 }
             }
+
+            if (level.getLevel() == 2) boss.render(tileAtlas);
+
             EndTextureMode();
 
             EndMode2D();
