@@ -14,4 +14,12 @@ Install [raylib](https://www.raylib.com/) (optional) and **[its dependencies](ht
 run 
 > ./build_ninja_linux.sh  
 
- to build the game  
+ to build the game
+
+## Credits
+Credit to Ramon Santamaria (@raysan5) for the raygui header in the src folder
+
+## Licenses
+
+- **Main Project License:** [MIT License](LICENSE)
+- **[raygui Header](src/raygui.h) License:** [zlib License](LICENSE_raygui.txt)

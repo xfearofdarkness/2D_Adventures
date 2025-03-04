@@ -73,7 +73,7 @@ if (WIN32)
     if(MSVC)
         # MSVC linker flags (no need for -mwindows)
         target_link_libraries(${PROJECT_NAME} raylib gdi32 winmm)
-        #set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+        set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
     else()
         # MinGW-specific flags
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
