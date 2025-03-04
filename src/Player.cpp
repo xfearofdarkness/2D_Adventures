@@ -150,13 +150,10 @@ void Player::initInventory() {
     // Reinitialize inventory
     craftingBench = {ItemType::CRAFTING_BENCH, craftingBenchTexture, [this] { openCraftingBench(); }};
     chest = {ItemType::CHEST, chestTexture, [this] { openChest(); }};
-    testItem = {ItemType::STONE, 20, stoneTexture};
-    testItem2 = {ItemType::WOOD, 20, woodTexture};
 
 
     m_inventory.reset();
     m_inventory.addItem(craftingBench);
-    m_inventory.addItem(testItem);
     m_inventory.addItem(chest);
 
     chestUI = std::make_unique<ChestUI>(m_chestInventory, m_inventory);
