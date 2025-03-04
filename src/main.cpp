@@ -85,12 +85,20 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
     return renderTexture;
 }
 
-void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std::vector<Enemy> &enemies, Level &level, RenderTexture2D &tileMapTexture, Texture2D tileAtlas, GameState &state) {
+void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std::vector<Enemy> &enemies,
+               Level &level, RenderTexture2D &tileMapTexture, Texture2D tileAtlas, GameState &state) {
     player.reset();
     level.reload();
-    tileMap = level.GetTileMap();
+
+    // Clear enemy list
     enemies.clear();
+
+    // Free old tilemap texture before reloading
+    UnloadRenderTexture(tileMapTexture);
+
+    tileMap = level.GetTileMap();
     tileMapTexture = CreateBackgroundRenderTexture(tileMap, tileAtlas, level, 32, 32);
+
     state = GameState::GAMING;
 }
 

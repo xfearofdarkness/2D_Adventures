@@ -79,6 +79,7 @@ void Level::SetTileAt(int x, int y, TileType type) {
 }
 
 void Level::reload() {
+    m_tilemap.clear();  // Clear old data before loading a new tilemap
     m_tilemap = loadTilemap("res/TestMap.csv");
 }
 

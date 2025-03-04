@@ -123,16 +123,28 @@ void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
     if (showChestUI) chestUI->update(deltaTime);
 }
 void Player::initInventory() {
+    // Free old textures if they exist
+    UnloadTexture(craftingBenchTexture);
+    UnloadTexture(chestTexture);
+    UnloadTexture(swordTexture);
+    UnloadTexture(stoneTexture);
+
+    // Load textures again
     loadItemTextures();
+
+    // Reinitialize inventory
     craftingBench = {ItemType::CRAFTING_BENCH, craftingBenchTexture, [this] { openCraftingBench(); }};
     chest = {ItemType::CHEST, chestTexture, [this] { openChest(); }};
-    testItem = {ItemType::STONE, 3, stoneTexture};
-    testItem2 = {ItemType::WOOD, 4, woodTexture};
+    testItem = {ItemType::STONE, 20, stoneTexture};
+    testItem2 = {ItemType::WOOD, 20, woodTexture};
+
     assert(craftingBench.icon.id);
+
+    m_inventory.reset();
     m_inventory.addItem(craftingBench);
     m_inventory.addItem(testItem);
     m_inventory.addItem(chest);
-    m_inventory.addItem(testItem2);
+
     chestUI = std::make_unique<ChestUI>(m_chestInventory, m_inventory);
 }
 void Player::takeDamage(int damage) {
@@ -382,12 +394,17 @@ void Player::reset() {
     m_isAlive = true;
     m_attackCooldownTimer = 0.0f;
     m_stamina = 8.0f;
+
     m_inventory.reset();
     m_selectedItem = nullptr;
+
     craftingUI = false;
     showChestUI = false;
     state = PlayerState::IDLE;
-    chestUI = nullptr;
+
+    // Delete previous UI instance before recreating it
+    chestUI.reset();
+
     processMovement = true;
     initInventory();
 }
