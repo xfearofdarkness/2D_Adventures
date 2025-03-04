@@ -3,9 +3,11 @@
 #include <iostream>
 #include "Crafting.h"
 #include "Assert.h"
+#include "DroppedItem.h"
+#include "Functional.h"
 
-Player::Player(Vector2 position, Level &level)
-    : pos(position), m_level(&level), m_selectedItem(nullptr), attackBoxRec({0, 0, 0, 0}), craftingBench(), chest() {
+Player::Player(Vector2 position, Level &level, std::vector<DroppedItem>* droppedItems)
+    : pos(position), m_level(&level), m_selectedItem(nullptr), attackBoxRec({0, 0, 0, 0}), craftingBench(), chest(), m_droppedItems(droppedItems) {
     state = PlayerState::IDLE;
     startPos = position;
 }
@@ -21,6 +23,7 @@ Player::~Player() {
     UnloadTexture(emptyLightning);
     UnloadTexture(filledLightning);
     UnloadTexture(woodTexture);
+    UnloadTexture(appleTexture);
 }
 
 void Player::renderHUD() {
@@ -84,7 +87,7 @@ void Player::handleSelection() {
 
 
     if (IsKeyPressed(KEY_E) && m_selectedItem) {
-        m_selectedItem->use();
+        useSelectedItem();
     }
 
     if (IsKeyPressed(KEY_F)) {
@@ -92,21 +95,21 @@ void Player::handleSelection() {
     }
 }
 
-void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
+void Player::update(float deltaTime, std::vector<Enemy>& enemies, std::vector<Slime>& slimes) {
     if (state == PlayerState::DEAD) {
         return;
     }
 
     if (processMovement) {
         move(deltaTime);
-        attack(enemies, deltaTime);
+        attack(enemies, slimes, deltaTime);
     }
 
     handleSelection();
 
     if (m_attackAnimationTimer > 0.0f) {
         m_attackAnimationTimer -= deltaTime;
-        // Optionally, keep state as ATTACKING while timer is positive.
+        // When timer expires, you might want to set state to IDLE if not attacking
         if (m_attackAnimationTimer <= 0.0f && state == PlayerState::ATTACKING) {
             state = PlayerState::IDLE;
         }
@@ -121,7 +124,18 @@ void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
     }
     if (chestUI->shouldClose) showChestUI = false;
     if (showChestUI) chestUI->update(deltaTime);
+
+    auto it = m_droppedItems->begin();
+    while (it != m_droppedItems->end()) {
+        if (!m_inventory.isFull() && CheckCollisionRecs(getBoundingBox(), it->getBoundingBox())) {
+            m_inventory.addItem(it->item);
+            it = m_droppedItems->erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
+
 void Player::initInventory() {
     // Free old textures if they exist
     UnloadTexture(craftingBenchTexture);
@@ -153,6 +167,35 @@ void Player::takeDamage(int damage) {
         m_health = 0;
         m_isAlive = false;
         state = PlayerState::DEAD;
+    }
+}
+
+void Player::heal(int amount) {
+    m_health += amount;
+    if (m_health > m_maxHealth) {
+        m_health = m_maxHealth;
+    }
+    std::cout << "Healed by " << amount << ", health is now " << m_health << std::endl;
+}
+
+void Player::useSelectedItem() {
+    if (!m_selectedItem)
+        return;
+
+    // If the item is an apple, heal and remove one apple.
+    if (m_selectedItem->type == ItemType::APPLE) {
+        heal(2);  // Heal for 2 (adjust as desired)
+        m_inventory.removeItem(ItemType::APPLE, 1);
+        std::cout << "Used an apple to heal." << std::endl;
+
+        // After removal, update m_selectedItem if needed.
+        if (m_inventory.getItems().empty()) {
+            m_selectedItem = nullptr;
+        }
+        // Otherwise, you might want to re-select an item based on your UI logic.
+    } else {
+        // For non-consumable items (or items that don't get consumed), just call their onUse function.
+        m_selectedItem->use();
     }
 }
 
@@ -272,7 +315,7 @@ bool Player::checkCollision(Vector2 testPos) {
     return false;
 }
 
-void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
+void Player::attack(std::vector<Enemy>& enemies, std::vector<Slime>& slimes, float delta_time) {
     // Use discrete input so each press counts only once.
     bool attackPressed = IsKeyPressed(KEY_C) || IsKeyPressed(KEY_RIGHT_CONTROL) || IsKeyPressed(KEY_LEFT_CONTROL);
 
@@ -282,11 +325,13 @@ void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
         return;
     }
 
-    // Attack occurs: subtract a fixed cost of 1 stamina.
-    m_stamina -= 1.0f;
-    state = PlayerState::ATTACKING;
+    if (m_stamina >= 1.0f) {
+        m_stamina -= 1.0f;
+        state = PlayerState::ATTACKING;
+        m_attackAnimationTimer = m_attackAnimationDuration; // Start the animation timer
+    }
 
-    // Define the attack box based on the player's direction.
+
     Rectangle attackBox;
     switch (direction) {
         case 0: // Down
@@ -307,43 +352,57 @@ void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
     }
     int itemDamage = 0;
 
-    if (m_selectedItem->type == ItemType::SWORD) {
-        itemDamage = 3;
+    if (m_selectedItem) {
+        if (m_selectedItem->type == ItemType::SWORD) itemDamage = 3;
     }
-    // Damage enemies that collide with the attack box.
     for (Enemy& e : enemies) {
         if (e.isAlive && CheckCollisionRecs(attackBox, e.getBoundingBox())) {
             e.takeDamage(1+itemDamage);
         }
     }
 
-    // Determine which tile is being attacked using the center of the attack box.
+    for (auto& e : slimes) {
+        if (e.isAlive && CheckCollisionRecs(attackBox, e.getBoundingBox())) {
+            e.takeDamage(1+itemDamage);
+        }
+    }
+
     int tileX = static_cast<int>((attackBox.x + attackBox.width / 2) / 32);
     int tileY = static_cast<int>((attackBox.y + attackBox.height / 2) / 32);
 
-    // Delegate world interaction (e.g. chopping trees) to your handler.
+
     handleWorldInteraction(m_level->getTileAt(tileX * 32, tileY * 32),
                            { static_cast<float>(tileX * 32), static_cast<float>(tileY * 32) });
 
-    // Store the attack box (e.g. for rendering the attack sprite).
     attackBoxRec = attackBox;
 }
 
 
 void Player::handleWorldInteraction(TileType tile, Vector2 worldPos) {
-    switch (tile) {
-        case TileType::Tree:
+    static std::unordered_map<Vector2, int, Vector2Hash> worldHitCount;
+    worldHitCount[worldPos]++;
+
+    if (tile == TileType::Tree) {
+        if (worldHitCount[worldPos] >= 3) {
             m_level->SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Grass);
-            //m_stamina--;
-            //std::cout << "bruh you outa breath: " << m_stamina << std::endl;
-            break;
-        case TileType::Stone:
+
+            // Spawn wood
+            m_droppedItems->push_back(DroppedItem({ ItemType::WOOD, 1, woodTexture }, { worldPos.x + 16, worldPos.y + 16 }));
+
+            // 25% chance to drop an apple
+            if (GetRandomValue(1, 4) == 1) {
+                m_droppedItems->push_back(DroppedItem({ ItemType::APPLE, 1, appleTexture }, { worldPos.x + 16, worldPos.y + 16 }));
+            }
+            worldHitCount.erase(worldPos);
+        }
+    }
+    else if (tile == TileType::Stone) {
+        if (worldHitCount[worldPos] >= 4) {
             m_level->SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Dirt);
-            //m_stamina--;
-            //std::cout << "bruh you outa breath: " << m_stamina << std::endl;
-            break;
-        default:
-            break;
+
+            m_droppedItems->push_back(DroppedItem({ ItemType::STONE, 1, stoneTexture }, { worldPos.x + 16, worldPos.y + 16 }));
+            worldHitCount.erase(worldPos);
+        }
     }
 }
 
@@ -361,6 +420,7 @@ void Player::loadItemTextures() {
     emptyLightning = LoadTexture("res/EmptyLightning.png");
     filledLightning = LoadTexture("res/FilledLightning.png");
     woodTexture = LoadTexture("res/Wood.png");
+    appleTexture = LoadTexture("res/Apple.png");
 }
 
 void Player::openChest() {
@@ -381,12 +441,35 @@ void Player::selectItem(int index) {
         std::cout << "No item selected.\n" << std::endl;
     }
 }
-void Player::renderAttack(Texture2D &tileAtlas) const {
-    if (state == PlayerState::ATTACKING || m_attackAnimationTimer > 0.0f)
-        DrawRectangleLines((int)attackBoxRec.x, (int)attackBoxRec.y, (int)attackBoxRec.width, (int)attackBoxRec.height, YELLOW);
-    if (state == PlayerState::ATTACKING || m_attackAnimationTimer > 0.0f)
-        DrawTexturePro(tileAtlas, { attackSrcRect.x + static_cast<float>(direction * 32) , attackSrcRect.y, 32, 32}, attackBoxRec, { 0,0 }, 0, WHITE);
+
+void Player::renderAttack(Texture2D &tileAtlas)  {
+    Rectangle attackBox;
+    switch (direction) {
+        case 0: // Down
+            attackBox = { pos.x, pos.y + 16, 32, 32 };
+        break;
+        case 1: // Up
+            attackBox = { pos.x, pos.y - 16, 32, 32 };
+        break;
+        case 2: // Left
+            attackBox = { pos.x - 16, pos.y + 2, 32, 32 };
+        break;
+        case 3: // Right
+            attackBox = { pos.x + 16, pos.y + 2, 32, 32 };
+        break;
+        default:
+            attackBox = {};
+        break;
+    }
+
+    attackBoxRec = attackBox;
+    if (m_attackAnimationTimer > 0.0f) {
+        DrawTexturePro(tileAtlas,
+                       { attackSrcRect.x + static_cast<float>(direction * 32), attackSrcRect.y, 32, 32 },
+                       attackBoxRec, { 0, 0 }, 0, WHITE);
+    }
 }
+
 void Player::reset() {
     pos = startPos;
     direction = 0;
@@ -404,7 +487,7 @@ void Player::reset() {
 
     // Delete previous UI instance before recreating it
     chestUI.reset();
-
+    m_droppedItems->clear();
     processMovement = true;
     initInventory();
 }

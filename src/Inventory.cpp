@@ -45,6 +45,10 @@ bool Inventory::hasItem(ItemType type, int requiredQuantity) const {
     return false;
 }
 
+bool Inventory::isFull() const {
+    return m_items.size() >= maxInventorySize;
+}
+
 void Inventory::printInventory() const {
     std::cout << "Inventory:" << std::endl;
     for (const auto& item : m_items) {

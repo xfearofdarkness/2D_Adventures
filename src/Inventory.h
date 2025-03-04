@@ -52,6 +52,8 @@ public:
 
     bool hasItem(ItemType type, int requiredQuantity) const;
 
+    bool isFull() const;
+
     void printInventory() const;
 
     void render(Item *selected);
@@ -64,6 +66,7 @@ public:
 
 private:
     std::vector<Item> m_items;
+    int maxInventorySize = 6;
 };
 
 

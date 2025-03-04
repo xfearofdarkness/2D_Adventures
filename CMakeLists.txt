@@ -60,6 +60,10 @@ add_executable(${PROJECT_NAME}
         src/Slime.h
         src/ChestUI.cpp
         src/ChestUI.h
+        src/EndBoss.cpp
+        src/EndBoss.h
+        src/DroppedItem.h
+        src/Functional.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})

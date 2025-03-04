@@ -4,11 +4,14 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #include "Assert.h"
+#include "DroppedItem.h"
+#include "EndBoss.h"
 #include "raylib.h"
 #include "Player.h"
 #include "Enemy.h"
 #include "Level.h"
 #include "raymath.h"
+#include "Slime.h"
 
 enum class GameState {
     MENU,
@@ -37,6 +40,30 @@ void SpawnEnemies(Level &level, std::vector<Enemy> &enemies, int amount, Vector2
                 float y = static_cast<float>(tileY) * 32.0f;
 
                 enemies.push_back(Enemy({x, y}, level));
+                spawned = true;
+                break;
+            }
+        }
+
+        if (!spawned) {
+            std::cout << "No spawn point for " << i << " was found.\n";
+        }
+    }
+}
+
+void SpawnSlimes(Level &level, std::vector<Slime> &enemies, int amount, Vector2 playerPos) {
+    for (int i = 0; i < amount; i++) {
+        bool spawned = false;
+        for (int attempts = 0; attempts < amount*3; attempts++) {
+            int tileX = GetRandomValue(0, 32 - 1);
+            int tileY = GetRandomValue(0, 32 - 1);
+            float dist = Vector2Distance({static_cast<float>(tileX*32), static_cast<float>(tileY*32)}, playerPos);
+            if (!isSolid(level.getTileAt(tileX*32, tileY*32)) && dist > 300) {
+
+                float x = static_cast<float>(tileX) * 32.0f;
+                float y = static_cast<float>(tileY) * 32.0f;
+
+                enemies.push_back(Slime({x, y}, level));
                 spawned = true;
                 break;
             }
@@ -85,14 +112,14 @@ RenderTexture2D CreateBackgroundRenderTexture(const std::vector<std::vector<Tile
     return renderTexture;
 }
 
-void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std::vector<Enemy> &enemies,
+void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std::vector<Enemy> &enemies, std::vector<Slime> slimes,
                Level &level, RenderTexture2D &tileMapTexture, Texture2D tileAtlas, GameState &state) {
     player.reset();
     level.reload();
 
     // Clear enemy list
     enemies.clear();
-
+    slimes.clear();
     // Free old tilemap texture before reloading
     UnloadRenderTexture(tileMapTexture);
 
@@ -103,6 +130,7 @@ void ResetGame(Player& player, std::vector<std::vector<TileType>> &tileMap, std:
 }
 
 int main() {
+    std::vector<DroppedItem> droppedItems;
     auto state = GameState::MENU;
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
     InitWindow(1280,720, "2D Adventures Alpha");
@@ -118,12 +146,16 @@ int main() {
     SetTargetFPS(hz);
     SetExitKey(0);
     std::vector<Enemy> enemies;
+    std::vector<Slime> slimes;
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
-    Player player({20*32, 6*32}, level);
+    Player player({20*32, 6*32}, level, &droppedItems);
+    EndBoss boss({15*32,30*32}, level);
     int spawnAmount = 10;
     enemies.reserve(spawnAmount);
+    slimes.reserve(spawnAmount);
     SpawnEnemies(level, enemies, spawnAmount, player.pos);
+    SpawnSlimes(level, slimes, spawnAmount, player.pos);
     Camera2D camera = { 0 };
     RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, tileAtlas, level, 32, 32);
     SetTextureWrap(tileAtlas, TEXTURE_WRAP_CLAMP);
@@ -175,10 +207,6 @@ int main() {
 
         float deltaTime = GetFrameTime();
 
-        if (IsKeyDown(KEY_K)) {
-            player.state = PlayerState::DEAD;
-        }
-
         if (player.state == PlayerState::DEAD) {
             state = GameState::GAMEOVER;
         }
@@ -186,7 +214,8 @@ int main() {
         if (state == GameState::GAMEOVER) {
             guiFont.baseSize = 8;
             if (int retry = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-100, 200, 40 }, "Retry")) {
-                ResetGame(player, tileMap, enemies, level, tilemapTexture, tileAtlas, state);
+                ResetGame(player, tileMap, enemies, slimes, level, tilemapTexture, tileAtlas, state);
+                droppedItems.clear();
             }
 
             if (int quit = GuiButton({ static_cast<float>(GetScreenWidth()/2-100), static_cast<float>(GetScreenHeight()/2)-40, 200, 40 }, "Quit")) {
@@ -202,7 +231,7 @@ int main() {
 
         if (state == GameState::GAMING || state == GameState::PAUSED) {
             // Update logic
-            player.update(deltaTime, enemies);
+            player.update(deltaTime, enemies, slimes);
             if (state != GameState::PAUSED && !player.getPaused()) {
                 if (level.needsRefreshing) {
                     UnloadRenderTexture(tilemapTexture);
@@ -213,6 +242,16 @@ int main() {
                 //enemy.moveTowardPlayer({ player.pos.x, player.pos.y }, deltaTime);
                 if (!enemies.empty()) {
                     std::ranges::sort(enemies, SortEntityByYPos);
+                }
+                if (!slimes.empty()) {
+                    for (auto &slime : slimes) {
+                        if (!slime.checkCollisionWithPlayer(player.getBoundingBox())) {
+                            slime.update(player.pos, deltaTime);
+                        } else {
+                            slime.attack(player, 1);
+                            slime.setState(EnemyState::WANDERING);
+                        }
+                    }
                 }
                 if (!enemies.empty()) {
                     for (auto& e : enemies) { //use reference to not copy the whole thing
@@ -227,6 +266,10 @@ int main() {
                 std::erase_if(enemies, [enemies](auto& e) {
                     return !e.isAlive && !enemies.empty();
                 });
+                std::erase_if(slimes, [slimes](auto& slime) {
+                    return !slime.isAlive && !slimes.empty();
+                });
+
 
                 if (enemies.empty()) {
                     SpawnEnemies(level, enemies, spawnAmount, player.pos);
@@ -256,6 +299,10 @@ int main() {
                WHITE
            );
 
+            for (const auto& droppedItem : droppedItems) {
+                droppedItem.render();
+            }
+
             // Draw player
             DrawTexturePro(
                 tileAtlas,
@@ -266,7 +313,7 @@ int main() {
                 WHITE
             );
             player.renderAttack(tileAtlas);
-            DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
+            //DrawRectangleLinesEx(player.getBoundingBox(), 0.5f, RED);
 
             if (!enemies.empty()) {
                 // Draw enemy
@@ -279,9 +326,15 @@ int main() {
                     0,
                     GREEN
                 );
-                    DrawRectangleLinesEx(enemy.getBoundingBox(), 0.5, RED);
+                    //DrawRectangleLinesEx(enemy.getBoundingBox(), 0.5, RED);
                 }
 
+            }
+
+            if (!slimes.empty()) {
+                for (auto& slime : slimes) {
+                    slime.render(tileAtlas);
+                }
             }
             EndTextureMode();
 
