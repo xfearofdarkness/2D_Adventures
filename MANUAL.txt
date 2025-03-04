@@ -1,0 +1,8 @@
+WASD or Arrow keys to move
+1-5 to select an item
+Press E to use the selected item
+Press Q to exit the crafting or chest menu.
+Move around in the chest menu with the arrow keys, transfer an item with ENTER
+Pause the game with ESCAPE
+Press C to hit
+Have fun!
