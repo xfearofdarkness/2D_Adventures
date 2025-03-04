@@ -10,23 +10,28 @@
 #include "Stringify.h"
 
 void Inventory::addItem(const Item &newItem) {
-    for (auto &item : m_items) {
-        if (item.type == newItem.type) {
-            item.quantity += newItem.quantity;
+    for (auto &existingItem : m_items) {
+        // Compare only item type (and maybe texture id if that's constant for that item)
+        if (existingItem.type == newItem.type) {
+            existingItem.quantity += newItem.quantity;
             return;
         }
     }
     m_items.push_back(newItem);
 }
 
-void Inventory::removeItem(const ItemType type, const int amount) {
-    for (auto it = m_items.begin(); it != m_items.end(); ++it) {
+void Inventory::removeItem(ItemType type, int amount) {
+    for (auto it = m_items.begin(); it != m_items.end(); /* no increment here */) {
         if (it->type == type) {
             it->quantity -= amount;
-            if (amount <= 0) {
-                m_items.erase(it);
+            if (it->quantity <= 0) {
+                it = m_items.erase(it);
+            } else {
+                ++it;
             }
             return;
+        } else {
+            ++it;
         }
     }
 }

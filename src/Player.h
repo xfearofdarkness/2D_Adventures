@@ -38,7 +38,7 @@ class Player {
     }
 
     Vector2 pos;
-    Vector2 startPos = {360, 320};
+    Vector2 startPos;
     int direction = 0; // 0 = down, 1 = up, 2 = left, 3 = right
     int animationIndex = 0; // Animation frame index
     float animationTimer = 0.0f; // Tracks time for animation updates
@@ -94,13 +94,14 @@ private:
     Texture2D emptyHeart;
     Texture2D emptyLightning;
     Texture2D filledLightning;
+    Texture2D woodTexture;
     Crafting craftingEntity;
     // Inventory items
     Item craftingBench;
     Item chest;
     //other members
     std::unique_ptr<ChestUI> chestUI;
-    Level &m_level;
+    Level *m_level;
     int m_health = 8;
     const int m_maxHealth = 8;
     bool m_isAlive = true;
@@ -117,6 +118,8 @@ private:
     bool craftingUI = false;
     bool showChestUI = false;
     Inventory m_chestInventory;
+    Item testItem;
+    Item testItem2;
 };
 
 

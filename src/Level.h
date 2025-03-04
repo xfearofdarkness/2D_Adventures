@@ -16,11 +16,9 @@ public:
     ~Level();
     static std::vector<std::vector<TileType>> loadTilemap(const std::string& filename);
 
-    TileType getTileAt(int x, int y) const;
+    [[nodiscard]] TileType getTileAt(int x, int y) const;
 
-    [[nodiscard]] std::vector<std::vector<TileType>> GetTileMap() const {
-        return m_tilemap;
-    }
+    [[nodiscard]] const std::vector<std::vector<TileType>>& GetTileMap() const { return m_tilemap; }
 
     [[nodiscard]] int tile_size() const {
         return tileSize;

@@ -8,8 +8,7 @@
 #include "Tile.h"
 #include "Player.h"
 
-Enemy::Enemy(Vector2 pos, std::vector<std::vector<TileType>>& tileMap) : pos(pos), m_tileMap(tileMap) {
-
+Enemy::Enemy(Vector2 pos, Level &level) : pos(pos), m_level(&level) {
 
 }
 
@@ -18,6 +17,7 @@ void Enemy::setState(EnemyState state) {
 }
 
 void Enemy::update(const Vector2 &playerPosition, float deltaTime) {
+
     Vector2 directionVector{};
     m_stateTimer -= deltaTime;
 
@@ -31,7 +31,7 @@ void Enemy::update(const Vector2 &playerPosition, float deltaTime) {
                 static_cast<float>(GetRandomValue(-1, 1)),
                 static_cast<float>(GetRandomValue(-1, 1))
             };
-            m_stateTimer = static_cast<float>(GetRandomValue(1, 8));
+            m_stateTimer = static_cast<float>(GetRandomValue(1, 4));
         }
     }
 
@@ -97,7 +97,7 @@ bool Enemy::checkCollisionWithPlayer(const Rectangle &playerBoundingBox) const {
 }
 
 bool Enemy::checkCollision(Vector2 testPos) {
-    //adjust bounds for sprite offset
+    //adjust player bounds for sprite offset
     Rectangle bounds = {
         testPos.x+4,
         testPos.y+2,
@@ -114,12 +114,12 @@ bool Enemy::checkCollision(Vector2 testPos) {
     for (int x = startX; x <= endX; ++x) {
         for (int y = startY; y <= endY; ++y) {
             if (x < 0 || y < 0 ||
-                x >= static_cast<int>(m_tileMap[0].size()) ||
-                y >= static_cast<int>(m_tileMap.size())) {
+                x >= static_cast<int>(m_level->GetTileMap()[0].size()) ||
+                y >= static_cast<int>(m_level->GetTileMap().size())) {
                 return true; // Collision with map bounds
                 }
 
-            if (isSolid(m_tileMap[y][x])) {
+            if (isSolid(m_level->GetTileMap()[y][x])) {
                 Rectangle tileRect = {
                     x * 32.0f,
                     y * 32.0f,

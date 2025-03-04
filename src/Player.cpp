@@ -4,9 +4,10 @@
 #include "Crafting.h"
 #include "Assert.h"
 
-Player::Player(Vector2 pos, Level &level)
-    : pos(pos), m_level(level), m_selectedItem(nullptr), attackBoxRec({0, 0, 0, 0}), craftingBench(), chest() {
+Player::Player(Vector2 position, Level &level)
+    : pos(position), m_level(&level), m_selectedItem(nullptr), attackBoxRec({0, 0, 0, 0}), craftingBench(), chest() {
     state = PlayerState::IDLE;
+    startPos = position;
 }
 
 Player::~Player() {
@@ -19,11 +20,16 @@ Player::~Player() {
     UnloadTexture(emptyHeart);
     UnloadTexture(emptyLightning);
     UnloadTexture(filledLightning);
+    UnloadTexture(woodTexture);
 }
 
 void Player::renderHUD() {
     if (craftingUI) {
-        Crafting::renderCraftingUI(m_inventory, {100,100});
+        Crafting::updateCraftingUI(m_inventory);
+
+        // Render the crafting UI at a desired position:
+        Vector2 craftingUIPanelPos = {100, 100};
+        Crafting::renderCraftingUI(m_inventory, craftingUIPanelPos);
     }
     const int iconSize = 32;
     const int spacing = 4;          // Spacing between hearts
@@ -40,8 +46,8 @@ void Player::renderHUD() {
 
     for (int i = 0; i < static_cast<int>(m_maxStamina) ; i++) {
         float x = 0 + i * (iconSize + spacing);
-
-        if (i < m_stamina && m_stamina > i+1) {
+        bool next = m_stamina > i || i == m_maxStamina;
+        if (i < m_stamina && next) {
             DrawTexture(filledLightning, x, iconSize+spacing, WHITE);
         } else {
             DrawTexture(emptyLightning, x, iconSize+spacing, WHITE);
@@ -64,6 +70,15 @@ void Player::handleSelection() {
         }
         if (IsKeyPressed(KEY_THREE)) {
             selectItem(2);
+        }
+        if (IsKeyPressed(KEY_FOUR)) {
+            selectItem(3);
+        }
+        if (IsKeyPressed(KEY_FIVE)) {
+            selectItem(4);
+        }
+        if (IsKeyPressed(KEY_SIX)) {
+            selectItem(5);
         }
     }
 
@@ -96,23 +111,28 @@ void Player::update(float deltaTime, std::vector<Enemy>& enemies) {
             state = PlayerState::IDLE;
         }
     }
-
+    if (IsKeyDown(KEY_Q)) {
+        if (craftingUI && !showChestUI) craftingUI = false;
+    }
     // Regenerate stamina continuously.
     m_stamina += m_staminaRegenRate * deltaTime;
     if (m_stamina > m_maxStamina) {
         m_stamina = m_maxStamina;
     }
-
+    if (chestUI->shouldClose) showChestUI = false;
     if (showChestUI) chestUI->update(deltaTime);
-
 }
 void Player::initInventory() {
     loadItemTextures();
     craftingBench = {ItemType::CRAFTING_BENCH, craftingBenchTexture, [this] { openCraftingBench(); }};
     chest = {ItemType::CHEST, chestTexture, [this] { openChest(); }};
+    testItem = {ItemType::STONE, 3, stoneTexture};
+    testItem2 = {ItemType::WOOD, 4, woodTexture};
     assert(craftingBench.icon.id);
     m_inventory.addItem(craftingBench);
+    m_inventory.addItem(testItem);
     m_inventory.addItem(chest);
+    m_inventory.addItem(testItem2);
     chestUI = std::make_unique<ChestUI>(m_chestInventory, m_inventory);
 }
 void Player::takeDamage(int damage) {
@@ -217,12 +237,12 @@ bool Player::checkCollision(Vector2 testPos) {
     for (int x = startX; x <= endX; ++x) {
         for (int y = startY; y <= endY; ++y) {
             if (x < 0 || y < 0 ||
-                x >= static_cast<int>(m_level.GetTileMap()[0].size()) ||
-                y >= static_cast<int>(m_level.GetTileMap().size())) {
+                x >= static_cast<int>(m_level->GetTileMap()[0].size()) ||
+                y >= static_cast<int>(m_level->GetTileMap().size())) {
                 return true; // Collision with map bounds
             }
 
-            if (isSolid(m_level.GetTileMap()[y][x])) {
+            if (isSolid(m_level->GetTileMap()[y][x])) {
                 Rectangle tileRect = {
                     x * 32.0f,
                     y * 32.0f,
@@ -273,11 +293,15 @@ void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
             attackBox = {};
             break;
     }
+    int itemDamage = 0;
 
+    if (m_selectedItem->type == ItemType::SWORD) {
+        itemDamage = 3;
+    }
     // Damage enemies that collide with the attack box.
     for (Enemy& e : enemies) {
         if (e.isAlive && CheckCollisionRecs(attackBox, e.getBoundingBox())) {
-            e.takeDamage(1);
+            e.takeDamage(1+itemDamage);
         }
     }
 
@@ -286,7 +310,7 @@ void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
     int tileY = static_cast<int>((attackBox.y + attackBox.height / 2) / 32);
 
     // Delegate world interaction (e.g. chopping trees) to your handler.
-    handleWorldInteraction(m_level.getTileAt(tileX * 32, tileY * 32),
+    handleWorldInteraction(m_level->getTileAt(tileX * 32, tileY * 32),
                            { static_cast<float>(tileX * 32), static_cast<float>(tileY * 32) });
 
     // Store the attack box (e.g. for rendering the attack sprite).
@@ -297,12 +321,12 @@ void Player::attack(std::vector<Enemy>& enemies, float delta_time) {
 void Player::handleWorldInteraction(TileType tile, Vector2 worldPos) {
     switch (tile) {
         case TileType::Tree:
-            m_level.SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Grass);
+            m_level->SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Grass);
             //m_stamina--;
             //std::cout << "bruh you outa breath: " << m_stamina << std::endl;
             break;
         case TileType::Stone:
-            m_level.SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Dirt);
+            m_level->SetTileAt(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y), TileType::Dirt);
             //m_stamina--;
             //std::cout << "bruh you outa breath: " << m_stamina << std::endl;
             break;
@@ -324,14 +348,16 @@ void Player::loadItemTextures() {
     emptyHeart = LoadTexture("res/EmptyHeart.png");
     emptyLightning = LoadTexture("res/EmptyLightning.png");
     filledLightning = LoadTexture("res/FilledLightning.png");
+    woodTexture = LoadTexture("res/Wood.png");
 }
 
 void Player::openChest() {
-    showChestUI = !showChestUI;
+    chestUI->shouldClose = false;
+    showChestUI = true;
 }
 
 void Player::openCraftingBench() {
-    craftingUI = !craftingUI;
+    craftingUI = true;
 }
 
 void Player::selectItem(int index) {
@@ -363,6 +389,7 @@ void Player::reset() {
     state = PlayerState::IDLE;
     chestUI = nullptr;
     processMovement = true;
+    initInventory();
 }
 
 

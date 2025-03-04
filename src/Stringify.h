@@ -13,6 +13,8 @@ constexpr std::string_view toString(ItemType type) {
         case ItemType::STONE: return "Stone";
         case ItemType::CRAFTING_BENCH: return "Crafting Bench";
         case ItemType::CHEST: return "Chest";
+        case ItemType::APPLE: return "Apple";
+        case ItemType::SWORD: return "Sword";
         default: return "Unknown";
     }
 }

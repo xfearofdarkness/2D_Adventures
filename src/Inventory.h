@@ -22,8 +22,9 @@ enum class ItemType {
 
 struct Item {
     ItemType type;
-    int quantity;
-    Texture2D icon;
+    mutable int quantity{};
+    Texture2D icon{};
+
 
 
     std:: function<void()> onUse;
@@ -31,7 +32,6 @@ struct Item {
     // Constructor to initialize normal items
     Item(const ItemType type, const int quantity, const Texture2D &icon)
         : type(type), quantity(quantity), icon(icon), onUse(nullptr) {}
-
     // Constructor for special items that have a use effect
     Item(const ItemType type, const Texture2D &icon, std::function<void()> useFunction)
         : type(type), quantity(1), icon(icon), onUse(std::move(useFunction)) {}

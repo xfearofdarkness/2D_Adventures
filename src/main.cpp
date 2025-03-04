@@ -24,7 +24,7 @@ bool SortEntityByYPos(const Enemy& e1, const Enemy& e2) {
     return e1.pos.y < e2.pos.y;
 }
 
-void SpawnEnemies(std::vector<std::vector<TileType>> &tileMap, const Level &level, std::vector<Enemy> &enemies, int amount, Vector2 playerPos) {
+void SpawnEnemies(Level &level, std::vector<Enemy> &enemies, int amount, Vector2 playerPos) {
     for (int i = 0; i < amount; i++) {
         bool spawned = false;
         for (int attempts = 0; attempts < amount*3; attempts++) {
@@ -36,7 +36,7 @@ void SpawnEnemies(std::vector<std::vector<TileType>> &tileMap, const Level &leve
                 float x = static_cast<float>(tileX) * 32.0f;
                 float y = static_cast<float>(tileY) * 32.0f;
 
-                enemies.push_back(Enemy({x, y}, tileMap));
+                enemies.push_back(Enemy({x, y}, level));
                 spawned = true;
                 break;
             }
@@ -112,10 +112,10 @@ int main() {
     std::vector<Enemy> enemies;
     Level level;
     std::vector<std::vector<TileType>> tileMap = level.GetTileMap();
-    Player player({360, 320}, level);
+    Player player({20*32, 6*32}, level);
     int spawnAmount = 10;
     enemies.reserve(spawnAmount);
-    SpawnEnemies(tileMap, level, enemies, spawnAmount,player.pos);
+    SpawnEnemies(level, enemies, spawnAmount, player.pos);
     Camera2D camera = { 0 };
     RenderTexture2D tilemapTexture = CreateBackgroundRenderTexture(tileMap, tileAtlas, level, 32, 32);
     SetTextureWrap(tileAtlas, TEXTURE_WRAP_CLAMP);
@@ -221,9 +221,9 @@ int main() {
                 });
 
                 if (enemies.empty()) {
-                    SpawnEnemies(tileMap, level, enemies, spawnAmount, player.pos);
+                    SpawnEnemies(level, enemies, spawnAmount, player.pos);
                 } else if (static_cast<int>(enemies.size()) <= spawnAmount / 2) {
-                    SpawnEnemies(tileMap, level, enemies, std::clamp(spawnAmount-static_cast<int>(enemies.size()), 1, 10), player.pos);
+                    SpawnEnemies(level, enemies, std::clamp(spawnAmount-static_cast<int>(enemies.size()), 1, 10), player.pos);
                 }
 
                 camera.target = { player.pos.x + 16.0f, player.pos.y + 16.0f };

@@ -13,6 +13,7 @@ enum class TileType {
     Tree,
     Stone,
     Dirt,
+    LevelTransition,
     Barrier,
 };
 

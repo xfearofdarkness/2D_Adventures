@@ -9,104 +9,138 @@
 
 #include "Stringify.h"
 
+#include "ChestUI.h"
+#include "raylib.h"
+#include <iostream>
+#include <algorithm>
+
+#include "ChestUI.h"
+#include "raylib.h"
+#include <iostream>
+#include <algorithm>
+
 ChestUI::ChestUI(Inventory &chestInv, Inventory &playerInv)
-    : chestInventory(chestInv), playerInventory(playerInv), activeGrid(ActiveGrid::CHEST),
-      chestSelectedIndex(0), playerSelectedIndex(0),
-      chestColumns(6), chestRows(4),
-      playerColumns(6), playerRows(1)
+    : chestInventory(chestInv), playerInventory(playerInv),
+      columns(6), chestRows(4), playerRows(1), chestActive(true)
 {
-    // You can initialize grid dimensions or other variables here.
+    chestSelectedIndex = 0;
+    playerSelectedIndex = 0;
+    // If chest is empty at startup, start with player's inventory active.
+    if (chestInventory.getItems().empty()) {
+        chestActive = false;
+    }
+    shouldClose = false;
 }
 
 void ChestUI::update(float deltaTime) {
-    // Toggle active grid using Tab.
-    if (IsKeyPressed(KEY_TAB)) {
-        activeGrid = (activeGrid == ActiveGrid::CHEST) ? ActiveGrid::PLAYER : ActiveGrid::CHEST;
-    }
 
-    // Update selection based on active grid:
-    if (activeGrid == ActiveGrid::CHEST) {
-        // For the chest grid: update index with arrow keys.
-        int numSlots = chestColumns * chestRows;
-        // Ensure we don't go beyond the number of items available.
-        if (!chestInventory.getItems().empty()) {
-            if (IsKeyPressed(KEY_RIGHT)) {
-                chestSelectedIndex = (chestSelectedIndex + 1) % numSlots;
-            }
-            if (IsKeyPressed(KEY_LEFT)) {
-                chestSelectedIndex = (chestSelectedIndex - 1 + numSlots) % numSlots;
-            }
-            if (IsKeyPressed(KEY_DOWN)) {
-                chestSelectedIndex = (chestSelectedIndex + chestColumns) % numSlots;
-            }
-            if (IsKeyPressed(KEY_UP)) {
-                chestSelectedIndex = (chestSelectedIndex - chestColumns + numSlots) % numSlots;
+    if (IsKeyDown(KEY_Q)) {
+        shouldClose = true;
+    }
+    // Navigation using arrow keys:
+    int chestSlots = chestRows * columns;
+    int playerSlots = playerRows * columns;
+
+    if (chestActive) {
+        // Navigate within the chest grid.
+        if (IsKeyPressed(KEY_RIGHT)) {
+            chestSelectedIndex = (chestSelectedIndex + 1) % chestSlots;
+        }
+        if (IsKeyPressed(KEY_LEFT)) {
+            chestSelectedIndex = (chestSelectedIndex - 1 + chestSlots) % chestSlots;
+        }
+        if (IsKeyPressed(KEY_DOWN)) {
+            // Move from chest grid to player's grid if on bottom row.
+            if (chestSelectedIndex >= chestSlots - columns) {
+                chestActive = false;
+            } else {
+                chestSelectedIndex = std::min(chestSlots - 1, chestSelectedIndex + columns);
             }
         }
-    } else { // Active grid is PLAYER.
-        int numSlots = playerColumns * playerRows;
-        if (!playerInventory.getItems().empty()) {
-            if (IsKeyPressed(KEY_RIGHT)) {
-                playerSelectedIndex = (playerSelectedIndex + 1) % numSlots;
-            }
-            if (IsKeyPressed(KEY_LEFT)) {
-                playerSelectedIndex = (playerSelectedIndex - 1 + numSlots) % numSlots;
-            }
-            // For the player's inventory, we assume one row so UP/DOWN might not change selection.
+        if (IsKeyPressed(KEY_UP)) {
+            chestSelectedIndex = std::max(0, chestSelectedIndex - columns);
         }
+    } else { // Player inventory active.
+        if (IsKeyPressed(KEY_RIGHT)) {
+            playerSelectedIndex = (playerSelectedIndex + 1) % playerSlots;
+        }
+        if (IsKeyPressed(KEY_LEFT)) {
+            playerSelectedIndex = (playerSelectedIndex - 1 + playerSlots) % playerSlots;
+        }
+        if (IsKeyPressed(KEY_UP)) {
+            // Move from player grid to chest grid.
+            playerSelectedIndex = 0;  // Optionally, set to a default value.
+            chestActive = true;
+        }
+        // Down key: if needed, can wrap around within player's grid.
     }
 
-    // If Enter is pressed, transfer the currently selected item.
+    // Transfer item on Enter.
     if (IsKeyPressed(KEY_ENTER)) {
         transferItem();
     }
 }
 
 void ChestUI::transferItem() {
-    // If active grid is CHEST, move item from chest to player's inventory.
-    if (activeGrid == ActiveGrid::CHEST) {
+    // Transfer from chest to player's inventory if the chest grid is active.
+    if (chestActive) {
         auto &chestItems = chestInventory.getItems();
-        if (!chestItems.empty() && chestSelectedIndex < static_cast<int>(chestItems.size())) {
-            // Get the selected item.
-            Item itemToTransfer = chestItems[chestSelectedIndex];
+        if (chestItems.empty() || chestSelectedIndex >= static_cast<int>(chestItems.size()))
+            return;
 
-            // Check if the item is a chest; if so, skip transfer.
-            if (itemToTransfer.type == ItemType::CHEST) {
-                std::cout << "Cannot transfer a chest item." << std::endl;
-                return;
-            }
+        // Create a copy of the selected item.
+        Item itemToTransfer = chestItems[chestSelectedIndex];
+        int transferQuantity = itemToTransfer.quantity;
 
-            // Remove the entire stack from the chest.
-            chestInventory.removeItem(itemToTransfer.type, itemToTransfer.quantity);
-            // Add it to the player's inventory.
-            playerInventory.addItem(itemToTransfer);
-            std::cout << "Transferred " << itemToTransfer.quantity << " of "
-                      << toString(itemToTransfer.type) << " from chest to inventory.\n";
-            // Update the selection index.
-            if (chestSelectedIndex >= static_cast<int>(chestInventory.getItems().size())) {
-                chestSelectedIndex = std::max(0, static_cast<int>(chestInventory.getItems().size()) - 1);
-            }
+        // Prevent transferring a chest item or a zero-quantity item.
+        if (itemToTransfer.type == ItemType::CHEST || transferQuantity <= 0) {
+            std::cout << "Cannot transfer this item." << std::endl;
+            return;
+        }
+
+        // Remove the item from the chest inventory.
+        chestInventory.removeItem(itemToTransfer.type, transferQuantity);
+
+        // Restore the original quantity in our copy.
+        itemToTransfer.quantity = transferQuantity;
+        // Add the copied item to the player's inventory.
+        playerInventory.addItem(itemToTransfer);
+        std::cout << "Transferred " << transferQuantity << " of "
+                  << toString(itemToTransfer.type) << " from chest to inventory." << std::endl;
+
+        // Adjust the chest selection index so it doesn't point to a shifted item.
+        if (chestInventory.getItems().empty()) {
+            chestSelectedIndex = 0;
+        } else if (chestSelectedIndex >= static_cast<int>(chestInventory.getItems().size())) {
+            chestSelectedIndex = static_cast<int>(chestInventory.getItems().size()) - 1;
         }
     }
-    // If active grid is PLAYER, move item from player's inventory to chest.
+    // Transfer from player's inventory to chest if the player's grid is active.
     else {
         auto &playerItems = playerInventory.getItems();
-        if (!playerItems.empty() && playerSelectedIndex < static_cast<int>(playerItems.size())) {
-            Item itemToTransfer = playerItems[playerSelectedIndex];
+        if (playerItems.empty() || playerSelectedIndex >= static_cast<int>(playerItems.size()))
+            return;
 
-            // Check if the item is a chest; if so, skip transfer.
-            if (itemToTransfer.type == ItemType::CHEST) {
-                std::cout << "Cannot transfer a chest item." << std::endl;
-                return;
-            }
+        Item itemToTransfer = playerItems[playerSelectedIndex];
+        int transferQuantity = itemToTransfer.quantity;
 
-            playerInventory.removeItem(itemToTransfer.type, itemToTransfer.quantity);
-            chestInventory.addItem(itemToTransfer);
-            std::cout << "Transferred " << itemToTransfer.quantity << " of "
-                      << toString(itemToTransfer.type) << " from inventory to chest.\n";
-            if (playerSelectedIndex >= static_cast<int>(playerInventory.getItems().size())) {
-                playerSelectedIndex = std::max(0, static_cast<int>(playerInventory.getItems().size()) - 1);
-            }
+        if (itemToTransfer.type == ItemType::CHEST || transferQuantity <= 0) {
+            std::cout << "Cannot transfer this item." << std::endl;
+            return;
+        }
+
+        // Remove the item from the player's inventory.
+        playerInventory.removeItem(itemToTransfer.type, transferQuantity);
+        itemToTransfer.quantity = transferQuantity;
+        // Add the item to the chest inventory.
+        chestInventory.addItem(itemToTransfer);
+        std::cout << "Transferred " << transferQuantity << " of "
+                  << toString(itemToTransfer.type) << " from inventory to chest." << std::endl;
+
+        if (playerInventory.getItems().empty()) {
+            playerSelectedIndex = 0;
+        } else if (playerSelectedIndex >= static_cast<int>(playerInventory.getItems().size())) {
+            playerSelectedIndex = static_cast<int>(playerInventory.getItems().size()) - 1;
         }
     }
 }
@@ -116,45 +150,32 @@ void ChestUI::render() {
     int screenHeight = GetScreenHeight();
 
     // Define panel sizes.
-    int chestPanelWidth = 440;
-    int chestPanelHeight = 300;
-    int playerPanelWidth = 440;
-    int playerPanelHeight = 80;
+    Rectangle chestPanel = { static_cast<float>(screenWidth / 2 - 300),
+                             static_cast<float>(screenHeight / 2 - 200),
+                             440, 300 };
+    Rectangle playerPanel = { static_cast<float>(screenWidth / 2 - 300),
+                              static_cast<float>(screenHeight / 2 + 150),
+                              440, 100 };
 
-    // Calculate panel positions (centered).
-    Rectangle chestPanel = {
-        static_cast<float>(screenWidth / 2 - chestPanelWidth / 2),
-        static_cast<float>(screenHeight / 2 - chestPanelHeight / 2 - 50),
-        static_cast<float>(chestPanelWidth),
-        static_cast<float>(chestPanelHeight)
-    };
-
-    Rectangle playerPanel = {
-        static_cast<float>(screenWidth / 2 - playerPanelWidth / 2),
-        static_cast<float>(screenHeight / 2 + chestPanelHeight / 2),
-        static_cast<float>(playerPanelWidth),
-        static_cast<float>(playerPanelHeight)
-    };
-
-    // Draw the panels.
+    // Draw panel backgrounds.
     DrawRectangleRec(chestPanel, Fade(DARKGRAY, 0.8f));
     DrawRectangleRec(playerPanel, Fade(DARKGRAY, 0.8f));
 
     int slotSize = 64;
     int padding = 8;
 
-    // Render chest inventory grid.
-    for (int i = 0; i < chestColumns * chestRows; i++) {
-        int col = i % chestColumns;
-        int row = i / chestColumns;
+    // Render chest grid.
+    int chestSlots = chestRows * columns;
+    for (int i = 0; i < chestSlots; i++) {
+        int col = i % columns;
+        int row = i / columns;
         float slotX = chestPanel.x + padding + col * (slotSize + padding);
         float slotY = chestPanel.y + padding + row * (slotSize + padding);
         Rectangle slotRect = { slotX, slotY, static_cast<float>(slotSize), static_cast<float>(slotSize) };
         DrawRectangleRec(slotRect, LIGHTGRAY);
-        if (activeGrid == ActiveGrid::CHEST && i == chestSelectedIndex) {
+        if (chestActive && i == chestSelectedIndex) {
             DrawRectangleLinesEx(slotRect, 3, YELLOW);
         }
-        // Draw item if available.
         const auto &chestItems = chestInventory.getItems();
         if (i < static_cast<int>(chestItems.size())) {
             const Item &item = chestItems[i];
@@ -162,20 +183,21 @@ void ChestUI::render() {
             float iconY = slotY + (slotSize - 32) / 2.0f;
             DrawTexture(item.icon, iconX, iconY, WHITE);
             if (item.quantity > 1) {
-                DrawText(TextFormat("%d", item.quantity), slotX + 5, slotY + 5, 20, WHITE);
+                DrawText(TextFormat("%d", item.quantity), slotX + slotSize - 20, slotY + slotSize - 22, 18, WHITE);
             }
         }
     }
 
     // Render player's inventory grid.
-    for (int i = 0; i < playerColumns * playerRows; i++) {
-        int col = i % playerColumns;
-        int row = i / playerColumns;
+    int playerSlots = playerRows * columns;
+    for (int i = 0; i < playerSlots; i++) {
+        int col = i % columns;
+        int row = i / columns;
         float slotX = playerPanel.x + padding + col * (slotSize + padding);
         float slotY = playerPanel.y + padding + row * (slotSize + padding);
         Rectangle slotRect = { slotX, slotY, static_cast<float>(slotSize), static_cast<float>(slotSize) };
         DrawRectangleRec(slotRect, LIGHTGRAY);
-        if (activeGrid == ActiveGrid::PLAYER && i == playerSelectedIndex) {
+        if (!chestActive && i == playerSelectedIndex) {
             DrawRectangleLinesEx(slotRect, 3, YELLOW);
         }
         const auto &playerItems = playerInventory.getItems();
@@ -185,7 +207,7 @@ void ChestUI::render() {
             float iconY = slotY + (slotSize - 32) / 2.0f;
             DrawTexture(item.icon, iconX, iconY, WHITE);
             if (item.quantity > 1) {
-                DrawText(TextFormat("%d", item.quantity), slotX + 5, slotY + 5, 20, WHITE);
+                DrawText(TextFormat("%d", item.quantity), slotX + slotSize - 20, slotY + slotSize - 22, 18, WHITE);
             }
         }
     }

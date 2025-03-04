@@ -55,7 +55,6 @@ add_executable(${PROJECT_NAME}
         src/Inventory.cpp
         src/Inventory.h
         src/Stringify.h
-        src/Crafting.cpp
         src/Crafting.h
         src/Slime.cpp
         src/Slime.h

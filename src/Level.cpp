@@ -51,6 +51,7 @@ std::vector<std::vector<TileType> > Level::loadTilemap(const std::string &filena
     return tilemap;
 }
 
+//accepts tile coordinates only
 TileType Level::getTileAt(int playerX, int playerY) const {
     // Convert player pixel position to tile indices
     int tileX = playerX / 32;

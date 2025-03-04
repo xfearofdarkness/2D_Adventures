@@ -7,6 +7,7 @@
 #include <vector>
 
 
+#include "Level.h"
 #include "raylib.h"
 #include "Tile.h"
 
@@ -20,7 +21,7 @@ class Enemy {
 public:
     virtual ~Enemy() = default;
 
-    Enemy(Vector2 position, std::vector<std::vector<TileType>>& tilemap);
+    Enemy(Vector2 position, Level &level);
 
     void setState(EnemyState state);
 
@@ -30,7 +31,7 @@ public:
     float stepCount = 0.0f;
     Vector2 pos;
     Rectangle srcRect = { 0, 32, 32, 32 };
-    int lives = 3;
+    int lives = 7;
 
 
     [[nodiscard]] virtual Rectangle getBoundingBox() const {
@@ -49,7 +50,7 @@ public:
     bool isAlive = true;
 
 private:
-    std::vector<std::vector<TileType>> m_tileMap;
+    Level* m_level;
 
     float m_speed = 75.0f;
 

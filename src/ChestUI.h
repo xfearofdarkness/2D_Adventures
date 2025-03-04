@@ -7,42 +7,37 @@
 
 #include "Inventory.h"
 #include "raylib.h"
-#include <vector>
-#include <string>
-
-enum class ActiveGrid {
-    CHEST,
-    PLAYER
-};
+#include <memory>
 
 class ChestUI {
 public:
-    // Construct the ChestUI with references to both inventories.
+    // Construct the ChestUI with references to the chest and player inventories.
     ChestUI(Inventory &chestInv, Inventory &playerInv);
 
-    // Call this every frame to handle input.
+    // Update and render the unified grid.
     void update(float deltaTime);
-    // Call this every frame to render the UI.
     void render();
-
+    bool shouldClose;
 private:
+    // Helper: Transfer the selected item from one inventory to the other.
+    void transferItem();
+
+    // References to the inventories.
     Inventory &chestInventory;
     Inventory &playerInventory;
-    ActiveGrid activeGrid;
 
-    // Selected index for each grid.
-    int chestSelectedIndex;
-    int playerSelectedIndex;
+    // Use separate selection indices.
+    int chestSelectedIndex; // for the chest inventory grid
+    int playerSelectedIndex; // for the player's inventory grid
 
-    // Grid dimensions.
-    int chestColumns; // e.g., 6 columns
-    int chestRows;    // e.g., 4 rows (24 slots total)
-    int playerColumns; // e.g., 6 columns
-    int playerRows;    // e.g., 1 row
+    // Grid layout settings.
+    int columns;       // e.g., 6 columns for both grids
+    int chestRows;     // e.g., 4 rows for chest
+    int playerRows;    // e.g., 1 row for player's inventory
 
-    // Helper functions:
-    void transferItem();       // Moves the selected item from one inventory to the other.
-    void updateSelection();    // Handles arrow key input to update the selection.
+    // Flag to determine which grid is active.
+    // true means chest grid is active; false means player's inventory is active.
+    bool chestActive;
 };
 
 #endif // CHESTUI_H
