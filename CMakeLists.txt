@@ -64,6 +64,7 @@ add_executable(${PROJECT_NAME}
         src/DroppedItem.h
         src/Functional.h
         src/Functional.h
+        src/icon.rc
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
