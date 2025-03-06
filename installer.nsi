@@ -59,8 +59,6 @@ Section "Install Files" SEC01
         SetRegView 64
     ${EndIf}
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\2D Adventures" "DisplayName" "2D Adventures"
-    
-    ; Quote the uninstall command in case there are spaces in the path:
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\2D Adventures" "UninstallString" '"$INSTDIR\Uninstall.exe"'
     
     ; Additional keys for proper display in Windows settings:
