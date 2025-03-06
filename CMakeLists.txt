@@ -4,7 +4,6 @@ project(2D_Adventures)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# Use C++20 standard
 set(CMAKE_CXX_STANDARD 20)
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
 file(GLOB RESOURCES_FILES "${RESOURCE_DIR}/*")
@@ -72,7 +71,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
 # Link with raylib
 if (WIN32)
     if(MSVC)
-        # MSVC linker flags (no need for -mwindows)
         target_link_libraries(${PROJECT_NAME} raylib gdi32 winmm)
         set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
     else()
