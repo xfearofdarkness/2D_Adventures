@@ -383,7 +383,6 @@ int main() {
             EndTextureMode();
 
             EndMode2D();
-            DrawFPS(0,0);
             player.renderInventory();
             player.renderHUD();
             EndDrawing();
